@@ -1,23 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head><script>
-// SW KILLER - force unregister any old Service Worker
-    if (regs.length) {
-      regs.forEach(function(r) { r.unregister(); });
-      // Clear all caches
-      if (window.caches) {
-        caches.keys().then(function(names) {
-          names.forEach(function(n) { caches.delete(n); });
-        });
-      }
-      // Reload fresh from network
-      window.location.reload();
-    }
-  });
-}
-</script>
-
-<meta charset="UTF-8">
+<head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Mis Réditos</title>
 <meta name="version" content="3.1-pwa">
