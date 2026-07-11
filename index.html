@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Mis Réditos</title>
-<meta name="version" content="3.2-pwa-fixed">
+<meta name="version" content="3.1-pwa-github">
 <meta name="description" content="Controla tus préstamos e intereses">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -140,7 +140,8 @@ h2{font-size:1.1rem;font-weight:700}
 </nav>
 <section class="tab-content active" id="tab-prestamos">
 <div class="section-header"><h2>Préstamos activos</h2><button class="btn btn-primary" id="btn-nuevo-prestamo">+ Nuevo</button></div>
-<div id="lista-prestamos" class="lista-prestamos"></div>
+<div id="lista-prestamos" class="lista-prestamos"><div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p class="empty-sub">Toca "+ Nuevo" para empezar</p></div>
+  </div></div>
 </section>
 <section class="tab-content" id="tab-historial">
 <div class="section-header"><h2>Historial de intereses</h2></div>
@@ -434,7 +435,8 @@ function renderPrestamos() {
   var activos = D.prestamos.filter(function(p) { return !p.pagado; });
 
   if (!activos.length) {
-    cont.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p class="empty-sub">Toca "+ Nuevo" para empezar</p></div>';
+    cont.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p class="empty-sub">Toca "+ Nuevo" para empezar</p></div>
+  </div>';
     return;
   }
 
