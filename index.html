@@ -140,7 +140,15 @@ h2{font-size:1.1rem;font-weight:700}
 </nav>
 <section class="tab-content active" id="tab-prestamos">
 <div class="section-header"><h2>Préstamos activos</h2><button class="btn btn-primary" id="btn-nuevo-prestamo">+ Nuevo</button></div>
-<div id="lista-prestamos" class="lista-prestamos"><div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p class="empty-sub">Toca "+ Nuevo" para empezar</p></div></div>
+<div id="lista-prestamos" class="lista-prestamos"><div class="empty-state">
+    <span class="empty-icon">📋</span>
+    <p>No tienes préstamos registrados</p>
+    <p class="empty-sub">Toca "+ Nuevo" para empezar</p>
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid #334155;">
+      <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">¿Ya usabas la app anterior? Importa tus datos:</p>
+      <button onclick="document.getElementById('exportModal').style.display='flex'" style="padding:12px 24px;background:#06b6d4;color:#0f172a;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;">📦 Migrar datos desde la versión anterior</button>
+    </div>
+  </div></div>
 </section>
 <section class="tab-content" id="tab-historial">
 <div class="section-header"><h2>Historial de intereses</h2></div>
@@ -434,7 +442,15 @@ function renderPrestamos() {
   var activos = D.prestamos.filter(function(p) { return !p.pagado; });
 
   if (!activos.length) {
-    cont.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p class="empty-sub">Toca "+ Nuevo" para empezar</p></div>';
+    cont.innerHTML = '<div class="empty-state">
+    <span class="empty-icon">📋</span>
+    <p>No tienes préstamos registrados</p>
+    <p class="empty-sub">Toca "+ Nuevo" para empezar</p>
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid #334155;">
+      <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">¿Ya usabas la app anterior? Importa tus datos:</p>
+      <button onclick="document.getElementById('exportModal').style.display='flex'" style="padding:12px 24px;background:#06b6d4;color:#0f172a;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;">📦 Migrar datos desde la versión anterior</button>
+    </div>
+  </div>';
     return;
   }
 
