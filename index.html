@@ -435,8 +435,7 @@ function renderPrestamos() {
   var activos = D.prestamos.filter(function(p) { return !p.pagado; });
 
   if (!activos.length) {
-    cont.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p class="empty-sub">Toca "+ Nuevo" para empezar</p></div>
-  </div>';
+    cont.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p class="empty-sub">Toca "+ Nuevo" para empezar</p></div>';
     return;
   }
 
