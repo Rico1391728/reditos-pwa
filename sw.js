@@ -1,5 +1,5 @@
 // Mis Réditos - Service Worker v1
-var CACHE = 'reditos-v1';
+var CACHE = 'reditos-v3';
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
