@@ -1,7 +1,7 @@
 {
-  "name": "Mis Réditos",
-  "short_name": "Réditos",
-  "description": "Controla tus préstamos e intereses",
+  "name": "Mis R\u00e9ditos",
+  "short_name": "R\u00e9ditos",
+  "description": "Controla tus pr\u00e9stamos e intereses",
   "start_url": "/reditos-pwa/",
   "scope": "/reditos-pwa/",
   "display": "standalone",
