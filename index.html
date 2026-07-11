@@ -963,7 +963,8 @@ function generarFactura(pid) {
     '</div>' +
     '<div class="no-print" style="display:flex;gap:10px;margin-top:14px">' +
       '<button class="btn btn-secondary" id="btn-compartir-factura" style="flex:1">\uD83D\uDCF7 Compartir como imagen</button>' +
-      '<button class="btn btn-outline" onclick="window.print()" style="flex:1">\uD83D\uDDA8\uFE0F Imprimir / PDF</button>' +
+      '<span class="btn-gear" onclick="document.getElementById('exportModal').style.display='flex'" style="padding:8px 12px;background:transparent;border:1px solid #475569;border-radius:8px;color:#94a3b8;cursor:pointer;font-size:18px;display:inline-flex;align-items:center;" title="Exportar/Importar datos">⚙️</span>
+    <button class="btn btn-outline" onclick="window.print()" style="flex:1">\uD83D\uDDA8\uFE0F Imprimir / PDF</button>' +
     '</div>';
 
   document.getElementById('btn-compartir-factura').addEventListener('click', function() {
