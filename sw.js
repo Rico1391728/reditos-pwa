@@ -1,12 +1,10 @@
-// Mis Réditos - Service Worker v1
-var CACHE = 'reditos-v3';
+// Mis Réditos - Service Worker v4
+var CACHE = 'reditos-v4';
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(cache) {
-      return cache.addAll([
-        // La app se cachea sola dinámicamente en fetch
-      ]);
+      return cache.addAll([]);
     })
   );
   self.skipWaiting();
@@ -25,18 +23,27 @@ self.addEventListener('activate', function(e) {
 });
 
 self.addEventListener('fetch', function(e) {
-  // Solo interceptar requests al mismo origen (share.zapia.com)
   if (e.request.url.startsWith(self.location.origin)) {
-    e.respondWith(
-      caches.open(CACHE).then(function(cache) {
-        return cache.match(e.request).then(function(response) {
-          var fetchPromise = fetch(e.request).then(function(networkResponse) {
-            cache.put(e.request, networkResponse.clone());
-            return networkResponse;
+    // Para archivos HTML, siempre ir a la red primero
+    if (e.request.url.endsWith('.html') || e.request.url.endsWith('/') || e.request.headers.get('accept').includes('text/html')) {
+      e.respondWith(
+        fetch(e.request).catch(function() {
+          return caches.match(e.request);
+        })
+      );
+    } else {
+      // Para otros archivos (CSS, JS, imágenes), usar caché primero
+      e.respondWith(
+        caches.open(CACHE).then(function(cache) {
+          return cache.match(e.request).then(function(response) {
+            var fetchPromise = fetch(e.request).then(function(networkResponse) {
+              cache.put(e.request, networkResponse.clone());
+              return networkResponse;
+            });
+            return response || fetchPromise;
           });
-          return response || fetchPromise;
-        });
-      })
-    );
+        })
+      );
+    }
   }
 });
