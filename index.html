@@ -1,6 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
+<head><script>
+// SW KILLER - force unregister any old Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    if (regs.length) {
+      regs.forEach(function(r) { r.unregister(); });
+      // Clear all caches
+      if (window.caches) {
+        caches.keys().then(function(names) {
+          names.forEach(function(n) { caches.delete(n); });
+        });
+      }
+      // Reload fresh from network
+      window.location.reload();
+    }
+  });
+}
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Mis Réditos</title>
@@ -1402,7 +1420,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Service Worker para PWA -->
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js', {scope: '/'});
+  navigator.serviceWorker.register('sw.js?v=2336191236776393557', {scope: '/'});
 }
 </script>
 </body>
