@@ -2,8 +2,6 @@
 <html lang="es">
 <head><script>
 // SW KILLER - force unregister any old Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
     if (regs.length) {
       regs.forEach(function(r) { r.unregister(); });
       // Clear all caches
@@ -1419,8 +1417,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Service Worker para PWA -->
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js?v=2336191236776393557', {scope: '/'});
 }
 </script>
 </body>
