@@ -64,10 +64,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .logo-icon{font-size:1.8rem;line-height:1}
 .logo h1{font-size:1.2rem;font-weight:800;letter-spacing:-.02em}
 .subtitle{font-size:.75rem;color:var(--text-dim);margin-top:-1px}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 16px;margin-top:12px}
-.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 6px;text-align:center}
-.stat-label{font-size:.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em}
-.stat-value{font-size:1.05rem;font-weight:700;margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px;margin-top:12px}
+.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 4px;text-align:center}
+.stat-label{font-size:.58rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.02em}
+.stat-value{font-size:.92rem;font-weight:700;margin-top:2px}
 .nav{display:flex;background:var(--bg-card);border-radius:var(--radius);margin:8px 16px 0;overflow:hidden;border:1px solid var(--border)}
 .tab{flex:1;text-align:center;padding:10px 4px;font-size:.82rem;cursor:pointer;color:var(--text-dim);transition:all .2s;border-bottom:2px solid transparent;font-weight:500}
 .tab.active{color:var(--primary);border-bottom-color:var(--primary);background:rgba(6,182,212,.08)}
@@ -184,9 +184,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
     </div>
     <div class="stats">
       <div class="stat"><div class="stat-label">Capital</div><div class="stat-value" id="stat-capital">$0</div></div>
+      <div class="stat"><div class="stat-label">Cap. Pagado</div><div class="stat-value" id="stat-cap-pagado" style="color:var(--success)">$0</div></div>
+      <div class="stat"><div class="stat-label">Cap. Pendiente</div><div class="stat-value" id="stat-cap-pend" style="color:var(--warning)">$0</div></div>
       <div class="stat"><div class="stat-label">Intereses</div><div class="stat-value" id="stat-intereses">$0</div></div>
-      <div class="stat"><div class="stat-label">Por cobrar</div><div class="stat-value" id="stat-pendiente">$0</div></div>
-      <div class="stat"><div class="stat-label">Activos</div><div class="stat-value" id="stat-activos">0</div></div>
+      <div class="stat"><div class="stat-label">Int. Cobrado</div><div class="stat-value" id="stat-int-cobrado" style="color:var(--success)">$0</div></div>
+      <div class="stat"><div class="stat-label">Int. Pendiente</div><div class="stat-value" id="stat-pendiente" style="color:var(--warning)">$0</div></div>
+      <div class="stat" style="grid-column: span 3; margin-top: 4px;"><div class="stat-label">Préstamos Activos</div><div class="stat-value" id="stat-activos">0</div></div>
     </div>
     <div class="nav">
       <div class="tab active" data-tab="prestamos">Préstamos</div>
@@ -631,9 +634,18 @@ function renderAll() {
 }
 function renderStats() {
   var active = getActivePrestamos().filter(function(p){return !p.pagado;});
-  var cap=0,int_=0,pen=0; active.forEach(function(p){cap+=p.capital;int_+=p.totalIntereses||0;pen+=p.interesesPendientes||0;});
+  var cap=0,int_=0,pen=0,cpag=0; 
+  active.forEach(function(p){
+    cap+=p.capital;
+    int_+=p.totalIntereses||0;
+    pen+=p.interesesPendientes||0;
+    cpag+=p.capitalPagado||0;
+  });
   document.getElementById('stat-capital').textContent = formatMoney(cap);
+  document.getElementById('stat-cap-pagado').textContent = formatMoney(cpag);
+  document.getElementById('stat-cap-pend').textContent = formatMoney(cap-cpag);
   document.getElementById('stat-intereses').textContent = formatMoney(int_);
+  document.getElementById('stat-int-cobrado').textContent = formatMoney(int_-pen);
   document.getElementById('stat-pendiente').textContent = formatMoney(pen);
   document.getElementById('stat-activos').textContent = active.length;
 }
