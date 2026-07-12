@@ -98,6 +98,7 @@ h2{font-size:1.1rem;font-weight:700}
 .detalle-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .detalle-actions .btn{flex:1;min-width:calc(50% - 4px);justify-content:center}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:12px 24px;border-radius:var(--radius);font-size:.88rem;font-weight:500;z-index:300;opacity:0;transition:all .35s ease;box-shadow:0 4px 24px rgba(0,0,0,.3);max-width:90%;text-align:center;pointer-events:none}
+.backup-menu-item:hover,.backup-menu-item:focus{background:var(--bg-input);color:var(--text)}.backup-menu-item:active{background:var(--primary);color:#fff}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @media(min-width:640px){body{max-width:480px;margin:0 auto;padding-bottom:100px}.modal{border-radius:var(--radius);max-width:480px;margin:auto;max-height:85dvh}.modal-overlay{align-items:center}}
 
@@ -123,6 +124,7 @@ h2{font-size:1.1rem;font-weight:700}
 <header class="header">
 <div class="header-content">
 <div class="logo"><span class="logo-icon">💰</span><div><h1>Mis Réditos</h1><p class="subtitle">Control de préstamos</p></div></div>
+<button class="btn btn-sm btn-outline" id="btn-backup" style="padding:6px 10px;font-size:1.1rem;line-height:1" title="Respaldos">⚙️</button>
 </div>
 </header>
 <section class="dashboard">
@@ -1397,6 +1399,71 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 })();
+</script>
+
+<!-- Modal de respaldo -->
+<div class="modal-overlay" id="modal-backup">
+<div class="modal" style="max-width:380px">
+<div class="modal-header"><h2>⚙️ Respaldos</h2><button class="btn-close" data-close="modal-backup">&times;</button></div>
+<div class="modal-body" style="padding:16px 20px 20px">
+<p style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">Exporta tus datos como respaldo o restaura una copia guardada anteriormente.</p>
+<button class="btn btn-primary" id="btn-exportar" style="width:100%;margin-bottom:10px">📥 Exportar respaldo</button>
+<button class="btn btn-outline" id="btn-importar" style="width:100%">📤 Restaurar respaldo</button>
+<input type="file" id="input-importar" accept=".json" style="display:none">
+</div>
+</div>
+</div>
+
+<script>
+// ========== RESPALDO (EXPORTAR / IMPORTAR) ==========
+document.getElementById('btn-backup').addEventListener('click', function() {
+  document.getElementById('modal-backup').classList.add('open');
+});
+
+document.getElementById('btn-exportar').addEventListener('click', function() {
+  var dataStr = localStorage.getItem('reditos_data_v2');
+  if (!dataStr) { showToast('No hay datos para exportar'); return; }
+  var blob = new Blob([dataStr], {type: 'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  var hoy = new Date();
+  var fecha = hoy.getFullYear() + '-' +
+    String(hoy.getMonth()+1).padStart(2,'0') + '-' +
+    String(hoy.getDate()).padStart(2,'0');
+  a.download = 'reditos-backup-' + fecha + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ Respaldo descargado');
+});
+
+document.getElementById('btn-importar').addEventListener('click', function() {
+  document.getElementById('input-importar').click();
+});
+
+document.getElementById('input-importar').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var data = JSON.parse(ev.target.result);
+      if (!data.prestamos || !data.version) {
+        showToast('❌ El archivo no parece un respaldo válido');
+        return;
+      }
+      if (!confirm('¿Restaurar respaldo? Se reemplazarán TODOS los datos actuales.')) return;
+      localStorage.setItem('reditos_data_v2', JSON.stringify(data));
+      location.reload();
+    } catch(e) {
+      showToast('❌ Error al leer el archivo');
+    }
+  };
+  reader.readAsText(file);
+  this.value = '';
+});
 </script>
 
 <!-- Service Worker para PWA -->
