@@ -45,6 +45,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 #pin-error{color:var(--danger);font-size:.85rem;margin-top:10px;min-height:24px}
 #pin-screen .btn-link{background:transparent;border:none;color:var(--text-dim);font-size:.8rem;cursor:pointer;margin-top:16px;text-decoration:underline}
 #pin-screen .btn-link:hover{color:var(--primary)}
+#admin-pin-screen{display:none;position:fixed;inset:0;z-index:500;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
+#admin-pin-screen.show{display:flex}
+#admin-pin-screen .logo-icon{font-size:3rem;margin-bottom:12px}
+#admin-pin-screen h2{font-size:1.4rem;font-weight:700;margin-bottom:4px}
+#admin-pin-screen p{color:var(--text-dim);margin-bottom:20px;font-size:.9rem}
+#admin-pin-input{width:200px;padding:14px;background:var(--bg-input);border:2px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1.5rem;text-align:center;letter-spacing:8px;outline:none;transition:border .2s;font-family:monospace}
+#admin-pin-input:focus{border-color:var(--primary)}
+#admin-pin-input::placeholder{font-size:1rem;letter-spacing:2px;color:var(--text-muted)}
+#admin-pin-error{color:var(--danger);font-size:.85rem;margin-top:10px;min-height:24px}
+#admin-pin-screen .btn-link{background:transparent;border:none;color:var(--text-dim);font-size:.8rem;cursor:pointer;margin-top:16px;text-decoration:underline}
+#admin-pin-screen .btn-link:hover{color:var(--primary)}
 .mode-badge{display:inline-block;font-size:.65rem;padding:3px 10px;border-radius:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .mode-badge.admin{background:rgba(16,185,129,.15);color:var(--success)}
 .mode-badge.colector{background:rgba(245,158,11,.15);color:var(--warning)}
@@ -156,6 +167,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
   <input type="password" id="pin-input" maxlength="6" placeholder="• • • •" inputmode="numeric">
   <div id="pin-error"></div>
   <button class="btn-link" id="btn-switch-to-login">← Soy el administrador — entrar con Google</button>
+  <button class="btn-link" id="btn-switch-to-admin-pin" style="margin-top:4px">🔐 Entrar con contraseña de admin</button>
+</div>
+
+<div id="admin-pin-screen">
+  <div class="logo-icon">🔐</div>
+  <h2>Admin con contraseña</h2>
+  <p>Ingresa la contraseña de administrador</p>
+  <input type="password" id="admin-pin-input" maxlength="6" placeholder="• • • •" inputmode="numeric">
+  <div id="admin-pin-error"></div>
+  <button class="btn-link" id="btn-admin-pin-to-back">← Volver</button>
 </div>
 
 <div id="auth-bar">
@@ -276,6 +297,7 @@ var syncing = false;
 var D = { version: 3, prestamos: [], historial: [], pagos: [] };
 var DATA_DOC_ID = 'datos-compartidos';
 var ALLOWED_ADMIN_EMAIL = 'rixocastillo@gmail.com'; // único administrador permitido
+var ADMIN_PIN = '1391'; // contraseña de admin para entrar desde cualquier celu
 
 function newId() { return Date.now() + Math.floor(Math.random() * 99999); }
 
@@ -290,7 +312,7 @@ function showToast(msg) {
 // ========== FIRESTORE ==========
 function saveToFirestore() {
   if (syncing) return;
-  if (!currentUser && currentMode !== 'colector') return;
+  if (!currentUser && currentMode !== 'admin' && currentMode !== 'colector') return;
   D.version = 3;
   return DB.collection('r_datos').doc(DATA_DOC_ID).set(JSON.parse(JSON.stringify(D)))
     .catch(function(e) { console.warn('Firestore save error:', e); });
@@ -337,11 +359,11 @@ function savePinsToLocal() {
   localStorage.setItem('reditos_pins', JSON.stringify(PIN_CODES));
 }
 function savePinsToFirestore() {
-  if (!AUTH.currentUser) return Promise.resolve();
+  if (!AUTH.currentUser && currentMode !== 'admin') return Promise.resolve();
   return DB.collection('config').doc('pins').set(PIN_CODES).catch(function(){});
 }
 function loadPinsFromFirestore() {
-  if (!AUTH.currentUser) return Promise.resolve();
+  if (!AUTH.currentUser && currentMode !== 'admin') return Promise.resolve();
   return DB.collection('config').doc('pins').get().then(function(snap) {
     if (snap.exists) {
       PIN_CODES = snap.data();
@@ -354,6 +376,7 @@ function loadPinsFromFirestore() {
 function showLoginScreen() {
   document.getElementById('login-screen').classList.add('show');
   document.getElementById('pin-screen').classList.remove('show');
+  document.getElementById('admin-pin-screen').classList.remove('show');
   document.getElementById('auth-bar').classList.remove('show');
   document.getElementById('app-main').style.display = 'none';
   document.getElementById('route-bar').classList.remove('show');
@@ -427,9 +450,43 @@ function enterAsColector(ruta) {
 function showPinScreen() {
   document.getElementById('login-screen').classList.remove('show');
   document.getElementById('pin-screen').classList.add('show');
+  document.getElementById('admin-pin-screen').classList.remove('show');
   document.getElementById('pin-input').value = '';
   document.getElementById('pin-error').textContent = '';
   document.getElementById('pin-input').focus();
+}
+
+function showAdminPinScreen() {
+  document.getElementById('login-screen').classList.remove('show');
+  document.getElementById('pin-screen').classList.remove('show');
+  document.getElementById('admin-pin-screen').classList.add('show');
+  document.getElementById('admin-pin-input').value = '';
+  document.getElementById('admin-pin-error').textContent = '';
+  document.getElementById('admin-pin-input').focus();
+}
+
+function enterAsAdminByPin() {
+  currentMode = 'admin';
+  currentUser = null;
+  currentColectorRoute = null;
+  document.getElementById('login-screen').classList.remove('show');
+  document.getElementById('pin-screen').classList.remove('show');
+  document.getElementById('admin-pin-screen').classList.remove('show');
+  document.getElementById('auth-bar').classList.add('show');
+  document.getElementById('app-main').style.display = 'block';
+  document.getElementById('route-bar').classList.add('show');
+  document.getElementById('user-name').textContent = 'Admin 🔐';
+  document.getElementById('mode-badge').textContent = 'ADMIN';
+  document.getElementById('mode-badge').className = 'mode-badge admin';
+  document.getElementById('user-avatar').textContent = 'A';
+  document.getElementById('user-avatar').style.backgroundImage = '';
+  document.getElementById('btn-nuevo-prestamo').style.display = '';
+  document.getElementById('btn-backup-top').style.display = '';
+  loadPins();
+  loadLocal();
+  renderAll();
+  listenToFirestore();
+  showToast('🔐 Bienvenido admin');
 }
 
 // --- PINs por defecto ---
@@ -529,10 +586,43 @@ document.getElementById('btn-switch-to-login').addEventListener('click', functio
   showLoginScreen();
 });
 
+document.getElementById('btn-switch-to-admin-pin').addEventListener('click', function() {
+  showAdminPinScreen();
+});
+
+document.getElementById('btn-admin-pin-to-back').addEventListener('click', function() {
+  showLoginScreen();
+});
+
+// --- Admin PIN auto-detect ---
+document.getElementById('admin-pin-input').addEventListener('input', function() {
+  var pin = this.value.trim();
+  document.getElementById('admin-pin-error').textContent = '';
+  if (pin === ADMIN_PIN) {
+    enterAsAdminByPin();
+  }
+});
+
+document.getElementById('admin-pin-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    var pin = this.value.trim();
+    if (pin === ADMIN_PIN) {
+      enterAsAdminByPin();
+    } else {
+      document.getElementById('admin-pin-error').textContent = '❌ Contraseña incorrecta';
+    }
+  }
+});
+
 document.getElementById('btn-logout').addEventListener('click', function() {
   if (currentMode === 'colector') {
     currentMode = null;
     currentColectorRoute = null;
+    showLoginScreen();
+  } else if (!currentUser) {
+    // admin por PIN, no tiene sesión de Google
+    if (unsubscribeFirestore) { unsubscribeFirestore(); unsubscribeFirestore = null; }
+    currentMode = null;
     showLoginScreen();
   } else {
     AUTH.signOut();
