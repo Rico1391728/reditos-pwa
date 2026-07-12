@@ -285,7 +285,8 @@ function showToast(msg) {
 
 // ========== FIRESTORE ==========
 function saveToFirestore() {
-  if (!currentUser || syncing) return;
+  if (syncing) return;
+  if (!currentUser && currentMode !== 'colector') return;
   D.version = 3;
   return DB.collection('r_datos').doc(DATA_DOC_ID).set(JSON.parse(JSON.stringify(D)))
     .catch(function(e) { console.warn('Firestore save error:', e); });
@@ -359,6 +360,7 @@ function showLoginScreen() {
 
 function enterAsAdmin(user) {
   currentMode = 'admin';
+  currentUser = user;
   currentColectorRoute = null;
   document.getElementById('login-screen').classList.remove('show');
   document.getElementById('pin-screen').classList.remove('show');
