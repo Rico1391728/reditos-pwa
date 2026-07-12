@@ -1,27 +1,17 @@
-// Version 4.1-firebase — always fetch fresh
-const CACHE = 'reditos-v4';
-self.addEventListener('install', function(e) {
-  self.skipWaiting();
-});
+// Version 4.2 — siempre red fetch, nunca cache de auth
+self.addEventListener('install', function(e) { self.skipWaiting(); });
 self.addEventListener('activate', function(e) {
-  e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(keys.map(function(k) { if (k !== CACHE) return caches.delete(k); }));
-    })
-  );
+  e.waitUntil(caches.keys().then(function(k) { return Promise.all(k.map(function(x) { return caches.delete(x); })); }));
   return self.clients.claim();
 });
 self.addEventListener('fetch', function(e) {
-  // Network-first: always try server, fallback to cache
-  e.respondWith(
-    fetch(e.request)
-      .then(function(res) {
-        var clone = res.clone();
-        caches.open(CACHE).then(function(c) { c.put(e.request, clone); });
-        return res;
-      })
-      .catch(function() {
-        return caches.match(e.request);
-      })
-  );
+  // No cachear nunca páginas HTML ni auth redirects
+  if (e.request.method === 'GET') {
+    var url = new URL(e.request.url);
+    if (url.pathname.indexOf('__/auth/') >= 0 || url.pathname.indexOf('reditos-pwa') >= 0) {
+      e.respondWith(fetch(e.request));
+      return;
+    }
+  }
+  e.respondWith(fetch(e.request).catch(function() { return caches.match(e.request); }));
 });
