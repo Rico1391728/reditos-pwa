@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Mis Réditos</title>
-<meta name="version" content="4.6-firebase">
+<meta name="version" content="4.7-firebase">
 <meta name="description" content="Controla tus préstamos e intereses">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,6 +30,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 #login-screen .btn-login{background:#fff;color:#1e293b;border:none;padding:14px 32px;border-radius:var(--radius);font-size:1rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:12px;transition:opacity .2s}
 #login-screen .btn-login:hover{opacity:.9}
 #login-screen .btn-login:disabled{opacity:.5;cursor:default}
+#login-screen .btn-link{background:transparent;border:none;color:var(--text-dim);font-size:.85rem;cursor:pointer;margin-top:20px;text-decoration:underline}
+#login-screen .btn-link:hover{color:var(--primary)}
+#pin-screen{display:none;position:fixed;inset:0;z-index:500;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center}
+#pin-screen.show{display:flex}
+#pin-screen .logo-icon{font-size:3rem;margin-bottom:12px}
+#pin-screen h2{font-size:1.4rem;font-weight:700;margin-bottom:4px}
+#pin-screen p{color:var(--text-dim);margin-bottom:20px;font-size:.9rem}
+#pin-input{width:200px;padding:14px;background:var(--bg-input);border:2px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:1.5rem;text-align:center;letter-spacing:8px;outline:none;transition:border .2s;font-family:monospace}
+#pin-input:focus{border-color:var(--primary)}
+#pin-input::placeholder{font-size:1rem;letter-spacing:2px;color:var(--text-muted)}
+#pin-error{color:var(--danger);font-size:.85rem;margin-top:10px;min-height:24px}
+#pin-screen .btn-link{background:transparent;border:none;color:var(--text-dim);font-size:.8rem;cursor:pointer;margin-top:16px;text-decoration:underline}
+#pin-screen .btn-link:hover{color:var(--primary)}
+.mode-badge{display:inline-block;font-size:.65rem;padding:3px 10px;border-radius:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.mode-badge.admin{background:rgba(16,185,129,.15);color:var(--success)}
+.mode-badge.colector{background:rgba(245,158,11,.15);color:var(--warning)}
 #auth-bar{display:none;background:var(--bg-card);padding:6px 16px;align-items:center;justify-content:space-between;font-size:.8rem;border-bottom:1px solid var(--border)}
 #auth-bar.show{display:flex}
 #auth-bar .user-info{display:flex;align-items:center;gap:8px;overflow:hidden}
@@ -128,12 +144,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
     <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
     Iniciar sesión con Google
   </button>
+  <button class="btn-link" id="btn-switch-to-pin">🔑 Soy cobrador — entrar con PIN</button>
+</div>
+
+<div id="pin-screen">
+  <div class="logo-icon">🔑</div>
+  <h2>Acceso cobrador</h2>
+  <p>Ingresa el código PIN de tu ruta</p>
+  <input type="password" id="pin-input" maxlength="6" placeholder="• • • •" inputmode="numeric">
+  <div id="pin-error"></div>
+  <button class="btn-link" id="btn-switch-to-login">← Soy el administrador — entrar con Google</button>
 </div>
 
 <div id="auth-bar">
   <div class="user-info">
     <div class="user-avatar" id="user-avatar"></div>
     <span class="user-name" id="user-name"></span>
+    <span class="mode-badge" id="mode-badge"></span>
   </div>
   <div style="display:flex;gap:6px;align-items:center">
     <button class="btn-logout" id="btn-backup-top" title="Respaldos">⚙️</button>
@@ -167,7 +194,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
   </div>
 
   <div class="tab-content active" id="tab-prestamos">
-    <div class="section-header"><h2>Préstamos activos</h2><button class="btn btn-primary btn-sm" id="btn-nuevo-prestamo">+ Nuevo</button></div>
+    <div class="section-header"><h2>Préstamos activos</h2><button class="btn btn-primary btn-sm" id="btn-nuevo-prestamo" style="display:none">+ Nuevo</button></div>
     <div id="lista-prestamos"></div>
   </div>
 
@@ -223,8 +250,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 <div class="modal-body" style="padding:16px 20px 20px">
 <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">Exporta tus datos o restaura una copia guardada.</p>
 <button class="btn btn-primary" id="btn-exportar" style="width:100%;margin-bottom:10px">📥 Exportar respaldo</button>
-<button class="btn btn-outline" id="btn-importar" style="width:100%">📤 Restaurar respaldo</button>
+<button class="btn btn-outline" id="btn-importar" style="width:100%;margin-bottom:20px">📤 Restaurar respaldo</button>
 <input type="file" id="input-importar" accept=".json" style="display:none">
+<div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+<p style="font-size:.85rem;font-weight:600;margin-bottom:8px">🔑 Códigos de cobradores</p>
+<div id="pin-list"></div>
+</div>
 </div></div></div>
 
 <div id="toast" class="toast"><span id="toast-message"></span></div>
@@ -286,80 +317,135 @@ function loadLocal() {
 }
 
 // ========== AUTH ==========
-// Estrategia: Intentar getRedirectResult (si venimos de un redirect), y si no, mostrar botón de popup
+var currentMode = null; // 'admin' o 'colector'
+var currentColectorRoute = null; // ruta asignada al cobrador
+var PIN_CODES = {}; // se cargan desde Firestore o localStorage
 
-var authReady = false;
-
-AUTH.onAuthStateChanged(function(user) {
-  if (user) {
-    authReady = true;
-    currentUser = user;
-    document.getElementById('login-screen').classList.remove('show');
-    document.getElementById('auth-bar').classList.add('show');
-    document.getElementById('app-main').style.display = 'block';
-    document.getElementById('route-bar').classList.add('show');
-    document.getElementById('user-name').textContent = user.displayName || user.email || 'Usuario';
-    var avatar = document.getElementById('user-avatar');
-    avatar.textContent = (user.displayName || user.email || 'U').charAt(0).toUpperCase();
-    avatar.style.backgroundImage = '';
-    if (user.photoURL) {
-      var img = new Image();
-      img.onload = function() { avatar.textContent = ''; avatar.style.backgroundImage = 'url(' + user.photoURL + ')'; avatar.style.backgroundSize = 'cover'; };
-      img.src = user.photoURL;
+// --- Gestión de PINs ---
+function loadPins() {
+  var saved = localStorage.getItem('reditos_pins');
+  if (saved) { try { PIN_CODES = JSON.parse(saved); } catch(e){} }
+}
+function savePinsToLocal() {
+  localStorage.setItem('reditos_pins', JSON.stringify(PIN_CODES));
+}
+function savePinsToFirestore() {
+  if (!AUTH.currentUser) return Promise.resolve();
+  return DB.collection('config').doc('pins').set(PIN_CODES).catch(function(){});
+}
+function loadPinsFromFirestore() {
+  if (!AUTH.currentUser) return Promise.resolve();
+  return DB.collection('config').doc('pins').get().then(function(snap) {
+    if (snap.exists) {
+      PIN_CODES = snap.data();
+      savePinsToLocal();
     }
-    loadLocal();
-    renderAll();
-    listenToFirestore();
-  } else {
-    // Sin sesión — mostrar login (pero getRedirectResult puede estar procesándose)
-    // No mostramos el login inmediatamente, esperamos un momento
+  }).catch(function(){});
+}
+
+// --- Cambio entre pantallas ---
+function showLoginScreen() {
+  document.getElementById('login-screen').classList.add('show');
+  document.getElementById('pin-screen').classList.remove('show');
+  document.getElementById('auth-bar').classList.remove('show');
+  document.getElementById('app-main').style.display = 'none';
+  document.getElementById('route-bar').classList.remove('show');
+  var btn = document.getElementById('btn-google-login');
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg> Iniciar sesión con Google';
+}
+
+function enterAsAdmin(user) {
+  currentMode = 'admin';
+  currentColectorRoute = null;
+  document.getElementById('login-screen').classList.remove('show');
+  document.getElementById('pin-screen').classList.remove('show');
+  document.getElementById('auth-bar').classList.add('show');
+  document.getElementById('app-main').style.display = 'block';
+  document.getElementById('route-bar').classList.add('show');
+  document.getElementById('user-name').textContent = user.displayName || user.email || 'Admin';
+  document.getElementById('mode-badge').textContent = 'ADMIN';
+  document.getElementById('mode-badge').className = 'mode-badge admin';
+  document.getElementById('btn-nuevo-prestamo').style.display = ''; // mostrar botón
+  document.getElementById('btn-backup-top').style.display = ''; // mostrar respaldos
+  var avatar = document.getElementById('user-avatar');
+  avatar.textContent = (user.displayName || 'A').charAt(0).toUpperCase();
+  avatar.style.backgroundImage = '';
+  if (user.photoURL) {
+    var img = new Image();
+    img.onload = function() { avatar.textContent = ''; avatar.style.backgroundImage = 'url(' + user.photoURL + ')'; avatar.style.backgroundSize = 'cover'; };
+    img.src = user.photoURL;
+  }
+  loadPinsFromFirestore();
+  // Guardar PINs por defecto a Firestore en la primera vez
+  setTimeout(function() {
+    loadPins();
+    savePinsToFirestore();
+  }, 1000);
+  loadLocal();
+  renderAll();
+  listenToFirestore();
+}
+
+function enterAsColector(ruta) {
+  currentMode = 'colector';
+  currentColectorRoute = ruta;
+  document.getElementById('login-screen').classList.remove('show');
+  document.getElementById('pin-screen').classList.remove('show');
+  document.getElementById('auth-bar').classList.add('show');
+  document.getElementById('app-main').style.display = 'block';
+  document.getElementById('route-bar').classList.add('show');
+  document.getElementById('user-name').textContent = 'Cobrador - Ruta ' + ruta;
+  document.getElementById('mode-badge').textContent = 'COBRADOR';
+  document.getElementById('mode-badge').className = 'mode-badge colector';
+  document.getElementById('user-avatar').textContent = ruta.charAt(0).toUpperCase();
+  document.getElementById('user-avatar').style.backgroundImage = '';
+  loadLocal();
+  renderAll();
+  listenToFirestore();
+  document.getElementById('btn-nuevo-prestamo').style.display = 'none'; // ocultar botón nuevo
+  document.getElementById('btn-backup-top').style.display = 'none'; // ocultar respaldos
+  showToast('🔑 Acceso como cobrador: Ruta ' + ruta, 3000);
+}
+
+function showPinScreen() {
+  document.getElementById('login-screen').classList.remove('show');
+  document.getElementById('pin-screen').classList.add('show');
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-input').focus();
+}
+
+// --- PINs por defecto ---
+PIN_CODES = { 'Norte': '2591', 'Sur': '7346' };
+savePinsToLocal();
+
+// --- Firebase Auth ---
+AUTH.onAuthStateChanged(function(user) {
+  if (user && currentMode !== 'colector') {
+    enterAsAdmin(user);
+  } else if (!user && currentMode !== 'colector') {
+    currentMode = null;
   }
 });
 
-// Procesar redirect pendiente si lo hay
 AUTH.getRedirectResult().then(function(result) {
-  authReady = true;
-  if (!result.user && !AUTH.currentUser) {
-    // No hay sesión activa — mostrar login
-    currentUser = null;
-    if (unsubscribeFirestore) { unsubscribeFirestore(); unsubscribeFirestore = null; }
-    document.getElementById('login-screen').classList.add('show');
-    document.getElementById('auth-bar').classList.remove('show');
-    document.getElementById('app-main').style.display = 'none';
-    document.getElementById('route-bar').classList.remove('show');
-    showToast('🔑 Inicia sesión con Google para sincronizar tus datos');
+  if (!result.user && !AUTH.currentUser && currentMode !== 'colector') {
+    showLoginScreen();
   }
 }).catch(function(err) {
-  authReady = true;
-  console.warn('getRedirectResult error:', err.code, err.message);
-  if (!AUTH.currentUser) {
-    currentUser = null;
-    if (unsubscribeFirestore) { unsubscribeFirestore(); unsubscribeFirestore = null; }
-    document.getElementById('login-screen').classList.add('show');
-    document.getElementById('auth-bar').classList.remove('show');
-    document.getElementById('app-main').style.display = 'none';
-    document.getElementById('route-bar').classList.remove('show');
-    if (err.code === 'auth/unauthorized-domain') {
-      showToast('❌ Dominio no autorizado. En Firebase Console → Authentication → Settings agrega: rico1391728.github.io');
-    }
+  if (!AUTH.currentUser && currentMode !== 'colector') {
+    showLoginScreen();
   }
 });
 
-// Timeout por si getRedirectResult nunca se resuelve
 setTimeout(function() {
-  if (!authReady) {
-    authReady = true;
-    if (!AUTH.currentUser) {
-      currentUser = null;
-      document.getElementById('login-screen').classList.add('show');
-      document.getElementById('auth-bar').classList.remove('show');
-      document.getElementById('app-main').style.display = 'none';
-      document.getElementById('route-bar').classList.remove('show');
-    }
+  if (!AUTH.currentUser && currentMode !== 'colector' && currentMode !== 'admin') {
+    showLoginScreen();
   }
 }, 3000);
 
-// Login con popup al hacer clic
+// --- Botón Google ---
 document.getElementById('btn-google-login').addEventListener('click', function() {
   var btn = this;
   btn.disabled = true;
@@ -373,27 +459,101 @@ document.getElementById('btn-google-login').addEventListener('click', function()
     if (err.code === 'auth/popup-blocked') {
       showToast('⚠️ El popup fue bloqueado. Asegúrate de permitir ventanas emergentes para este sitio.');
     } else if (err.code === 'auth/popup-closed-by-user') {
-      // El usuario cerró el popup, no mostrar error
     } else if (err.code === 'auth/unauthorized-domain') {
-      showToast('❌ Dominio no autorizado. En Firebase Console → Authentication → Settings agrega: rico1391728.github.io');
+      showToast('❌ Dominio no autorizado. En Firebase Console agrega: rico1391728.github.io');
     } else {
       showToast('⚠️ Error: ' + (err.message || 'Intenta de nuevo'));
-      console.warn('Popup error:', err.code, err.message);
     }
   });
 });
 
-document.getElementById('btn-logout').addEventListener('click', function() { AUTH.signOut(); location.reload(); });
+// --- PIN ---
+document.getElementById('pin-input').addEventListener('input', function() {
+  var pin = this.value.trim();
+  document.getElementById('pin-error').textContent = '';
+  loadPins();
+  for (var ruta in PIN_CODES) {
+    if (PIN_CODES[ruta] === pin) {
+      enterAsColector(ruta);
+      return;
+    }
+  }
+});
+
+document.getElementById('pin-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    var pin = this.value.trim();
+    loadPins();
+    var found = false;
+    for (var ruta in PIN_CODES) {
+      if (PIN_CODES[ruta] === pin) {
+        enterAsColector(ruta);
+        found = true;
+        return;
+      }
+    }
+    if (!found) {
+      document.getElementById('pin-error').textContent = '❌ PIN incorrecto. Intenta de nuevo.';
+    }
+  }
+});
+
+document.getElementById('btn-switch-to-pin').addEventListener('click', function() {
+  showPinScreen();
+});
+
+document.getElementById('btn-switch-to-login').addEventListener('click', function() {
+  showLoginScreen();
+});
+
+document.getElementById('btn-logout').addEventListener('click', function() {
+  if (currentMode === 'colector') {
+    currentMode = null;
+    currentColectorRoute = null;
+    showLoginScreen();
+  } else {
+    AUTH.signOut();
+    location.reload();
+  }
+});
+
+// --- Gestión de PINs en el modal ---
+function renderPinList() {
+  var cont = document.getElementById('pin-list');
+  var html = '';
+  for (var ruta in PIN_CODES) {
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="flex:1;font-size:.9rem;font-weight:500">🛣️ ' + ruta + '</span><input type="text" class="pin-edit" data-ruta="' + ruta + '" value="' + PIN_CODES[ruta] + '" maxlength="6" style="width:80px;padding:6px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:1rem;text-align:center;font-family:monospace;letter-spacing:4px"><button class="btn btn-sm btn-primary btn-save-pin" data-ruta="' + ruta + '" style="padding:6px 10px;font-size:.75rem">Guardar</button></div>';
+  }
+  cont.innerHTML = html || '<p style="color:var(--text-dim);font-size:.85rem">No hay rutas con PIN configurados</p>';
+  
+  document.querySelectorAll('.btn-save-pin').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var ruta = this.dataset.ruta;
+      var input = document.querySelector('.pin-edit[data-ruta="' + ruta + '"]');
+      var newPin = input.value.trim();
+      if (newPin.length < 3) { showToast('❌ El PIN debe tener al menos 3 caracteres'); return; }
+      PIN_CODES[ruta] = newPin;
+      savePinsToLocal();
+      savePinsToFirestore();
+      showToast('✅ PIN de ' + ruta + ' actualizado');
+    });
+  });
+}
 
 // ========== ROUTE FILTER ==========
 var currentUserRoute = localStorage.getItem('reditos_mi_ruta') || '__all__';
 document.getElementById('route-filter').addEventListener('change', function() {
+  if (currentMode === 'colector') return; // cobradores no cambian de ruta
   currentUserRoute = this.value;
   localStorage.setItem('reditos_mi_ruta', currentUserRoute);
   renderAll();
 });
 
 function getActivePrestamos() {
+  // Si es cobrador, filtrar por su ruta asignada
+  if (currentMode === 'colector' && currentColectorRoute) {
+    return D.prestamos.filter(function(p) { return p.ruta === currentColectorRoute; });
+  }
   if (currentUserRoute === '__all__') return D.prestamos;
   if (currentUserRoute === '__none__') return D.prestamos.filter(function(p) { return !p.ruta; });
   return D.prestamos.filter(function(p) { return p.ruta === currentUserRoute; });
@@ -405,6 +565,15 @@ function getAllRouteNames() {
 }
 function updateRouteFilter() {
   var sel = document.getElementById('route-filter');
+  if (currentMode === 'colector') {
+    // Cobrador: solo ve su ruta, no puede cambiar
+    sel.innerHTML = '<option value="">🛣️ Ruta ' + currentColectorRoute + '</option>';
+    sel.disabled = true;
+    sel.style.opacity = '0.7';
+    return;
+  }
+  sel.disabled = false;
+  sel.style.opacity = '1';
   var current = sel.value;
   sel.innerHTML = '<option value="__all__">Todas las rutas 🌐</option><option value="__none__">Sin ruta</option>';
   getAllRouteNames().forEach(function(r) {
@@ -470,7 +639,7 @@ function renderPrestamos() {
   var activos = lista.filter(function(p){return !p.pagado;});
   var pagados = lista.filter(function(p){return p.pagado;});
   if (!activos.length && !pagados.length) {
-    cont.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p style="font-size:.85rem;color:var(--text-dim);margin-top:6px">Toca "+ Nuevo" para empezar</p></div>';
+    cont.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>No tienes préstamos registrados</p><p style="font-size:.85rem;color:var(--text-dim);margin-top:6px">' + (currentMode === 'colector' ? 'No hay préstamos asignados a tu ruta' : 'Toca "+ Nuevo" para empezar') + '</p></div>';
     return;
   }
   var html = '';
@@ -503,7 +672,7 @@ function renderPagos() {
   var conceptos = { intereses:'Intereses', capital:'Capital', ambos:'Cap+Int' };
   cont.innerHTML = items.map(function(pg) {
     var p = getPrestamo(pg.prestamoId); if (!p || !ids[p.id]) return '';
-    return '<div class="pago-item"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong>' + escHtml(p.nombre) + '</strong><div style="font-size:.8rem;color:var(--text-dim);margin-top:2px">' + formatDate(pg.fecha) + ' · ' + (conceptos[pg.concepto]||pg.concepto) + '</div></div><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--success);font-weight:700;font-size:1.1rem">' + formatMoney(pg.monto) + '</span><button class="btn btn-sm btn-outline btn-editar-pago" data-pgid="' + pg.id + '" data-pid="' + pg.prestamoId + '">✏️</button></div></div></div>';
+    return '<div class="pago-item"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong>' + escHtml(p.nombre) + '</strong><div style="font-size:.8rem;color:var(--text-dim);margin-top:2px">' + formatDate(pg.fecha) + ' · ' + (conceptos[pg.concepto]||pg.concepto) + '</div></div><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--success);font-weight:700;font-size:1.1rem">' + formatMoney(pg.monto) + '</span>' + (currentMode === 'admin' ? '<button class="btn btn-sm btn-outline btn-editar-pago" data-pgid="' + pg.id + '" data-pid="' + pg.prestamoId + '">✏️</button>' : '') + '</div></div></div>';
   }).join('');
 }
 
@@ -515,9 +684,9 @@ function openDetalle(pid) {
   var hp = hPre.length ? hPre.slice(0,50).map(function(h){return '<div class="historial-entry"><span class="historial-fecha">'+formatDateShort(h.fecha)+'</span><span class="historial-monto">'+formatMoney(h.monto)+'</span><span style="font-size:.7rem;color:'+(h.cobrado?'var(--text-dim)':'var(--warning)')+'">'+(h.cobrado?'✅':'⏳')+'</span></div>';}).join('') : '<p style="color:var(--text-dim);font-size:.85rem">Sin intereses aún</p>';
   var pPre = D.pagos.filter(function(pg){return pg.prestamoId===pid;});
   var conceptos = { intereses:'Int.', capital:'Cap.', ambos:'Cap+Int' };
-  var pp = pPre.length ? pPre.map(function(pg){return '<div class="historial-entry"><span class="historial-fecha">'+formatDateShort(pg.fecha)+' · '+(conceptos[pg.concepto]||pg.concepto)+'</span><span style="color:var(--success);font-weight:600">'+formatMoney(pg.monto)+'</span><button class="btn btn-sm btn-outline btn-editar-pago" data-pgid="'+pg.id+'" data-pid="'+pg.prestamoId+'" style="font-size:.7rem;padding:2px 6px">✏️</button></div>';}).join('') : '<p style="color:var(--text-dim);font-size:.85rem">Sin pagos</p>';
+  var pp = pPre.length ? pPre.map(function(pg){return '<div class="historial-entry"><span class="historial-fecha">'+formatDateShort(pg.fecha)+' · '+(conceptos[pg.concepto]||pg.concepto)+'</span><span style="color:var(--success);font-weight:600">'+formatMoney(pg.monto)+'</span>'+(currentMode === 'admin' ? '<button class="btn btn-sm btn-outline btn-editar-pago" data-pgid="'+pg.id+'" data-pid="'+pg.prestamoId+'" style="font-size:.7rem;padding:2px 6px">✏️</button>' : '')+'</div>';}).join('') : '<p style="color:var(--text-dim);font-size:.85rem">Sin pagos</p>';
   var notasHtml = p.notas ? '<div style="background:var(--bg-input);padding:12px;border-radius:var(--radius-sm);margin-bottom:16px"><small style="color:var(--text-dim);display:block;margin-bottom:4px">NOTAS</small><p style="font-size:.9rem">'+escHtml(p.notas)+'</p></div>' : '';
-  var acc = (!p.pagado ? '<button class="btn btn-primary" data-pagar="'+p.id+'">💵 Pago</button>' : '') + '<button class="btn btn-warning" data-factura="'+p.id+'">📄 Factura</button><button class="btn btn-secondary" data-editar="'+p.id+'">✏️ Editar</button><button class="btn btn-outline" data-compartir="'+p.id+'">📤 Compartir</button><button class="btn btn-danger" data-eliminar="'+p.id+'">🗑️ Eliminar</button>';
+  var acc = (!p.pagado ? '<button class="btn btn-primary" data-pagar="'+p.id+'">💵 Pago</button>' : '') + '<button class="btn btn-warning" data-factura="'+p.id+'">📄 Factura</button>' + (currentMode === 'admin' ? '<button class="btn btn-secondary" data-editar="'+p.id+'">✏️ Editar</button><button class="btn btn-outline" data-compartir="'+p.id+'">📤 Compartir</button><button class="btn btn-danger" data-eliminar="'+p.id+'">🗑️ Eliminar</button>' : '');
   document.getElementById('detalle-contenido').innerHTML = '<div class="detalle-grid"><div class="detalle-item"><label>Capital</label><span>'+formatMoney(p.capital)+'</span></div><div class="detalle-item"><label>Capital Pagado</label><span style="color:var(--success)">'+formatMoney(p.capitalPagado||0)+'</span></div><div class="detalle-item"><label>Capital Pendiente</label><span style="color:var(--warning)">'+formatMoney(p.capital-(p.capitalPagado||0))+'</span></div><div class="detalle-item"><label>Tasa</label><span>'+p.tasa+'%</span></div><div class="detalle-item"><label>Frecuencia</label><span>'+freqLabel(p.frecuencia)+'</span></div><div class="detalle-item"><label>Desde</label><span>'+formatDate(p.fechaInicio)+'</span></div><div class="detalle-item"><label>Interés generado</label><span style="color:var(--success)">'+formatMoney(tg)+'</span></div><div class="detalle-item"><label>Pendiente</label><span style="color:var(--warning)">'+formatMoney(pe)+'</span></div></div>'+(p.ruta?'<div style="margin-bottom:12px;font-size:.85rem;color:var(--primary)">🛣️ Ruta: '+escHtml(p.ruta)+'</div>':'')+notasHtml+'<div class="detalle-historial"><h3>Intereses</h3>'+hp+'</div><div class="detalle-historial" style="margin-top:16px"><h3>Pagos</h3>'+pp+'</div><div class="detalle-actions">'+acc+'</div>';
   document.getElementById('modal-detalle').classList.add('open');
 }
@@ -656,7 +825,10 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('detalle-contenido').addEventListener('click',function(e){var bp=e.target.closest('[data-pagar]');if(bp){abrirFormPago(parseInt(bp.dataset.pagar));return;}var bf=e.target.closest('[data-factura]');if(bf){generarFactura(parseInt(bf.dataset.factura));return;}var be=e.target.closest('[data-editar]');if(be){abrirEditarPrestamo(parseInt(be.dataset.editar));return;}var bc=e.target.closest('[data-compartir]');if(bc){compartirPrestamo(parseInt(bc.dataset.compartir));return;}var bd=e.target.closest('[data-eliminar]');if(bd){eliminarPrestamo(parseInt(bd.dataset.eliminar));}});
   document.addEventListener('click',function(e){var bp=e.target.closest('.btn-editar-pago');if(bp){abrirEditarPago(parseInt(bp.dataset.pgid),parseInt(bp.dataset.pid));}});
   document.getElementById('fecha-inicio').value=todayStr();document.getElementById('pago-fecha').value=todayStr();
-  document.getElementById('btn-backup-top').addEventListener('click',function(){document.getElementById('modal-backup').classList.add('open');});
+  document.getElementById('btn-backup-top').addEventListener('click',function(){
+    renderPinList();
+    document.getElementById('modal-backup').classList.add('open');
+  });
   document.getElementById('btn-exportar').addEventListener('click',function(){var data=JSON.stringify(D,null,2);var blob=new Blob([data],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;var d=todayStr();a.download='reditos-backup-'+d+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showToast('✅ Respaldo descargado');});
   document.getElementById('btn-importar').addEventListener('click',function(){document.getElementById('input-importar').click();});
   document.getElementById('input-importar').addEventListener('change',function(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var data=JSON.parse(ev.target.result);if(!data.prestamos||!data.version){showToast('❌ El archivo no parece un respaldo válido');return;}if(!confirm('¿Restaurar respaldo? Se reemplazarán TODOS los datos actuales.'))return;D.prestamos=data.prestamos||[];D.historial=data.historial||[];D.pagos=data.pagos||[];saveToFirestore().then(function(){location.reload();});}catch(e){showToast('❌ Error al leer el archivo');}};reader.readAsText(file);this.value='';});
