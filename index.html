@@ -119,6 +119,17 @@ h2{font-size:1.1rem;font-weight:700}
 .invoice-footer{text-align:center;padding:12px 20px;color:#94a3b8;font-size:.72rem;border-top:1px solid #e2e8f0}
 @media print{.no-print{display:none!important}body{background:#fff;padding:0}.modal-overlay{position:static;background:none;backdrop-filter:none;align-items:center}.modal{animation:none;border-radius:0;max-height:none;box-shadow:none;padding:0;background:transparent}.modal-header{display:none}.invoice{border-radius:0}}
 </style>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {"apiKey": "AIzaSyDfmbfEn-zKx1suo_C1qYVkvYuN5mWARjM", "authDomain": "reditos-pwa.firebaseapp.com", "projectId": "reditos-pwa", "storageBucket": "reditos-pwa.firebasestorage.app", "messagingSenderId": "350803322044", "appId": "1:350803322044:web:6cf34623aed7670c9d1cb9"};
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+</script>
 </head>
 <body>
 <header class="header">
