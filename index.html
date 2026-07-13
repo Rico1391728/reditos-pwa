@@ -158,6 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
     Iniciar sesión con Google
   </button>
   <button class="btn-link" id="btn-switch-to-pin">🔑 Soy cobrador — entrar con PIN</button>
+  <button class="btn-link" id="btn-switch-to-admin-pin-main" style="margin-top:2px">🔐 Entrar con contraseña de admin</button>
 </div>
 
 <div id="pin-screen">
@@ -587,6 +588,10 @@ document.getElementById('btn-switch-to-login').addEventListener('click', functio
 });
 
 document.getElementById('btn-switch-to-admin-pin').addEventListener('click', function() {
+  showAdminPinScreen();
+});
+
+document.getElementById('btn-switch-to-admin-pin-main').addEventListener('click', function() {
   showAdminPinScreen();
 });
 
