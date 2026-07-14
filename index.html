@@ -146,7 +146,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .invoice-table tr:last-child td{border-bottom:none}
 .invoice-total{padding:12px 0 8px;display:flex;justify-content:space-between;font-weight:800;font-size:1rem;color:#0f172a;border-top:2px solid #0f172a;margin-bottom:4px}
 .invoice-footer{padding:12px 20px;font-size:.75rem;color:#94a3b8;border-top:1px solid #e2e8f0;text-align:center}
-</style>
+
+/* ====== BALANCES ====== */
+.balances-resumen{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+.bal-card{background:var(--bg-card);border-radius:var(--radius);padding:12px;text-align:center;border:1px solid var(--border)}
+.bal-label{font-size:.7rem;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.bal-val{font-size:1.1rem;font-weight:800;color:var(--primary)}
+.balances-filtros{margin:8px 0 12px}
+.filtro-pestanas{display:flex;gap:4px;flex-wrap:wrap}
+.filtro-tab{padding:6px 12px;font-size:.75rem;border-radius:16px;cursor:pointer;background:var(--bg-input);color:var(--text-dim);font-weight:500;transition:all .15s;border:1px solid transparent}
+.filtro-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.filtro-rango{display:flex;align-items:center;gap:8px;margin-top:8px}
+.filtro-rango input{flex:1;padding:8px;border-radius:var(--radius-sm);background:var(--bg-input);border:1px solid var(--border);color:var(--text);font-size:.85rem}
+.filtro-selector{margin-top:8px}
+.filtro-selector select{width:100%;padding:8px;border-radius:var(--radius-sm);background:var(--bg-input);border:1px solid var(--border);color:var(--text);font-size:.85rem}
+.balances-resultados{background:var(--bg-card);border-radius:var(--radius);padding:16px;border:1px solid var(--border);margin-bottom:12px}
+.bal-detalle-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.85rem}
+.bal-detalle-row:last-child{border-bottom:none}
+.bal-monto{font-weight:700}
+.balances-historial h3{font-size:.95rem;font-weight:700;margin-bottom:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.04em}
+.bal-liq-item{background:var(--bg-card);border-radius:var(--radius);padding:12px;margin-bottom:8px;border:1px solid var(--border)}
+.bal-liq-header{display:flex;justify-content:space-between;margin-bottom:6px}
+.bal-liq-periodo{font-weight:700;font-size:.9rem}
+.bal-liq-fecha{font-size:.75rem;color:var(--text-dim)}
+.bal-liq-detalle{font-size:.8rem;color:var(--text-dim)}
+.bal-liq-detalle span{margin-right:12px}
+.bal-liq-ganancia{color:var(--success);font-weight:700;font-size:1rem}
 </head>
 <body>
 <div id="login-screen" class="show">
@@ -217,6 +242,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
       <div class="tab active" data-tab="prestamos">Préstamos</div>
       <div class="tab" data-tab="historial">Intereses</div>
       <div class="tab" data-tab="pagos">Pagos</div>
+      <div class="tab" data-tab="balances">📊 Balances</div>
     </div>
   </div>
 
@@ -233,6 +259,83 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
   <div class="tab-content" id="tab-pagos">
     <div class="section-header" style="margin-bottom:4px"><h2>Pagos registrados</h2></div>
     <div id="lista-pagos"></div>
+  </div>
+
+  <!-- ====== TAB BALANCES ====== -->
+  <div class="tab-content" id="tab-balances">
+    <!-- Resumen Superior -->
+    <div class="balances-resumen">
+      <div class="bal-card">
+        <div class="bal-label">Total en la calle</div>
+        <div class="bal-val" id="bal-total-calle">$0</div>
+      </div>
+      <div class="bal-card">
+        <div class="bal-label">Capital en calle</div>
+        <div class="bal-val" id="bal-capital-calle">$0</div>
+      </div>
+      <div class="bal-card">
+        <div class="bal-label">Clientes activos</div>
+        <div class="bal-val" id="bal-clientes">0</div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="balances-filtros">
+      <div class="filtro-pestanas" id="bal-filtro-pestanas">
+        <span class="filtro-tab active" data-periodo="todo">Todo</span>
+        <span class="filtro-tab" data-periodo="mes">Por mes</span>
+        <span class="filtro-tab" data-periodo="quincena">Por quincena</span>
+        <span class="filtro-tab" data-periodo="semana">Por semana</span>
+        <span class="filtro-tab" data-periodo="dia">Por día</span>
+        <span class="filtro-tab" data-periodo="rango">Rango</span>
+      </div>
+      <div class="filtro-rango" id="bal-rango" style="display:none">
+        <input type="date" id="bal-desde">
+        <span style="color:var(--text-dim)">→</span>
+        <input type="date" id="bal-hasta">
+        <button class="btn btn-sm btn-primary" id="btn-bal-aplicar-rango">Aplicar</button>
+      </div>
+      <div class="filtro-selector" id="bal-selector-periodo" style="display:none">
+        <select id="bal-selector-mes"></select>
+      </div>
+    </div>
+
+    <!-- Resultados del período -->
+    <div class="balances-resultados" id="bal-resultados">
+      <div class="bal-detalle">
+        <div class="bal-detalle-row">
+          <span>Capital prestado en el período</span>
+          <span class="bal-monto" id="bal-cap-prestado">$0</span>
+        </div>
+        <div class="bal-detalle-row">
+          <span>Intereses generados</span>
+          <span class="bal-monto" id="bal-intereses-gen">$0</span>
+        </div>
+        <div class="bal-detalle-row">
+          <span>Intereses cobrados</span>
+          <span class="bal-monto" id="bal-intereses-cob" style="color:var(--success)">$0</span>
+        </div>
+        <div class="bal-detalle-row">
+          <span>Capital recuperado</span>
+          <span class="bal-monto" id="bal-cap-recuperado" style="color:var(--success)">$0</span>
+        </div>
+        <div class="bal-detalle-row">
+          <span>Ganancia neta del período</span>
+          <span class="bal-monto" id="bal-ganancia" style="color:var(--primary);font-size:1.2rem">$0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botón Liquidar -->
+    <div style="text-align:center;margin:16px 0">
+      <button class="btn btn-primary" id="btn-liquidar" style="padding:12px 32px;font-size:1rem">💰 Liquidar período</button>
+    </div>
+
+    <!-- Histórico de liquidaciones -->
+    <div class="balances-historial">
+      <h3>Histórico de liquidaciones</h3>
+      <div id="bal-lista-liquidaciones"></div>
+    </div>
   </div>
 </div>
 
@@ -295,7 +398,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 var currentUser = null;
 var unsubscribeFirestore = null;
 var syncing = false;
-var D = { version: 3, prestamos: [], historial: [], pagos: [] };
+var D = { version: 4, prestamos: [], historial: [], pagos: [], liquidaciones: [] };
 var DATA_DOC_ID = 'datos-compartidos';
 var ALLOWED_ADMIN_EMAIL = 'rixocastillo@gmail.com'; // único administrador permitido
 var ADMIN_PIN = '1391'; // contraseña de admin para entrar desde cualquier celu
@@ -314,7 +417,7 @@ function showToast(msg) {
 function saveToFirestore() {
   if (syncing) return;
   if (!currentUser && currentMode !== 'admin' && currentMode !== 'colector') return;
-  D.version = 3;
+  D.version = 4;
   return DB.collection('r_datos').doc(DATA_DOC_ID).set(JSON.parse(JSON.stringify(D)))
     .catch(function(e) { console.warn('Firestore save error:', e); });
 }
@@ -330,7 +433,8 @@ function listenToFirestore() {
       D.prestamos = remote.prestamos || [];
       D.historial = remote.historial || [];
       D.pagos = remote.pagos || [];
-      D.version = remote.version || 3;
+      D.liquidaciones = remote.liquidaciones || [];
+      D.version = remote.version || 4;
       localStorage.setItem('reditos_data_v2', JSON.stringify(D));
       syncing = false;
       generateInterests();
@@ -742,6 +846,7 @@ function getNoCobrados(pid) { return D.historial.filter(function(h){return h.pre
 // ========== RENDER ==========
 function renderAll() {
   updateRouteFilter(); renderStats(); renderPrestamos(); renderHistorial(); renderPagos();
+  renderBalances(BAL_PERIODO_ACTUAL); renderLiquidaciones();
 }
 function renderStats() {
   var active = getActivePrestamos().filter(function(p){return !p.pagado;});
@@ -801,6 +906,194 @@ function renderPagos() {
     var p = getPrestamo(pg.prestamoId); if (!p || !ids[p.id]) return '';
     return '<div class="pago-item"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong>' + escHtml(p.nombre) + '</strong><div style="font-size:.8rem;color:var(--text-dim);margin-top:2px">' + formatDate(pg.fecha) + ' · ' + (conceptos[pg.concepto]||pg.concepto) + '</div></div><div style="display:flex;align-items:center;gap:8px"><span style="color:var(--success);font-weight:700;font-size:1.1rem">' + formatMoney(pg.monto) + '</span>' + (currentMode === 'admin' ? '<button class="btn btn-sm btn-outline btn-editar-pago" data-pgid="' + pg.id + '" data-pid="' + pg.prestamoId + '">✏️</button>' : '') + '</div></div></div>';
   }).join('');
+}
+
+// ========== BALANCES ==========
+var BAL_PERIODO_ACTUAL = 'todo';
+var BAL_DESDE = null;
+var BAL_HASTA = null;
+
+function getPeriodDates(periodo, valor) {
+  var hoy = new Date();
+  var d, h;
+  switch(periodo) {
+    case 'todo':
+      return { desde: null, hasta: null };
+    case 'mes':
+      if (!valor) valor = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
+      var partes = valor.split('-');
+      var anio = parseInt(partes[0]), mes = parseInt(partes[1]) - 1;
+      d = new Date(anio, mes, 1);
+      h = new Date(anio, mes + 1, 0, 23, 59, 59);
+      return { desde: d, hasta: h };
+    case 'quincena':
+      if (!valor) {
+        var dia = hoy.getDate();
+        valor = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + (dia <= 15 ? '1' : '2');
+      }
+      var q = valor.split('-');
+      var qAnio = parseInt(q[0]), qMes = parseInt(q[1]) - 1, qParte = parseInt(q[2]);
+      if (qParte === 1) {
+        d = new Date(qAnio, qMes, 1);
+        h = new Date(qAnio, qMes, 15, 23, 59, 59);
+      } else {
+        d = new Date(qAnio, qMes, 16);
+        h = new Date(qAnio, qMes + 1, 0, 23, 59, 59);
+      }
+      return { desde: d, hasta: h };
+    case 'semana':
+      if (!valor) {
+        var inicioSem = new Date(hoy);
+        inicioSem.setDate(hoy.getDate() - hoy.getDay());
+        valor = inicioSem.toISOString().slice(0,10);
+      }
+      d = new Date(valor);
+      h = new Date(d);
+      h.setDate(h.getDate() + 6);
+      h.setHours(23,59,59);
+      return { desde: d, hasta: h };
+    case 'dia':
+      if (!valor) valor = hoy.toISOString().slice(0,10);
+      d = new Date(valor + 'T00:00:00');
+      h = new Date(valor + 'T23:59:59');
+      return { desde: d, hasta: h };
+    case 'rango':
+      return { desde: BAL_DESDE ? new Date(BAL_DESDE + 'T00:00:00') : null, hasta: BAL_HASTA ? new Date(BAL_HASTA + 'T23:59:59') : null };
+  }
+}
+
+function calcularBalances(periodo, valor) {
+  var fechas = getPeriodDates(periodo, valor);
+  var desde = fechas.desde;
+  var hasta = fechas.hasta;
+  
+  // Capital prestado en el periodo (préstamos creados en la fecha)
+  var capPrestado = 0, interesesGen = 0, interesesCob = 0, capRecuperado = 0;
+  var prestamosPeriodo = {};
+  
+  D.prestamos.forEach(function(p) {
+    var fCreacion = new Date(p.fechaInicio || p.id || Date.now());
+    if (desde && hasta && (fCreacion < desde || fCreacion > hasta)) return;
+    capPrestado += p.capital;
+    prestamosPeriodo[p.id] = true;
+  });
+  
+  // Si es "todo", tomar todos los préstamos
+  if (!desde && !hasta) {
+    D.prestamos.forEach(function(p) { prestamosPeriodo[p.id] = true; });
+    capPrestado = D.prestamos.reduce(function(s,p){return s + p.capital;}, 0);
+  }
+  
+  // Intereses generados en el período
+  D.historial.forEach(function(h) {
+    if (!prestamosPeriodo[h.prestamoId]) {
+      // Si "todo", igual considerar
+      if (desde || hasta) return;
+    }
+    var fInt = new Date(h.fecha + 'T00:00:00');
+    if (desde && fInt < desde) return;
+    if (hasta && fInt > hasta) return;
+    interesesGen += h.monto;
+    if (h.cobrado) interesesCob += h.monto;
+  });
+  
+  // Pagos (capital recuperado) en el período
+  D.pagos.forEach(function(pg) {
+    if (!prestamosPeriodo[pg.prestamoId]) {
+      if (desde || hasta) return;
+    }
+    var fPg = new Date(pg.fecha + 'T00:00:00');
+    if (desde && fPg < desde) return;
+    if (hasta && fPg > hasta) return;
+    if (pg.concepto === 'capital' || pg.concepto === 'ambos') {
+      capRecuperado += pg.monto;
+    }
+  });
+  
+  // Si concepto ambos paga capital e interés, estimar mitad (es aproximado)
+  // Mejor: sumamos todo lo que no sea solo intereses
+  interesesGen = Math.max(0, interesesGen);
+  
+  var ganancia = interesesCob;
+  
+  // Totales generales (para resumen superior)
+  var totalCalle = 0, capitalCalle = 0, clientes = 0;
+  D.prestamos.forEach(function(p) {
+    var pend = p.capital - (p.capitalPagado || 0);
+    if (!p.pagado && pend > 0) {
+      capitalCalle += pend;
+      totalCalle += pend + (p.interesesPendientes || 0);
+      clientes++;
+    }
+  });
+  
+  return {
+    capPrestado: capPrestado,
+    interesesGen: interesesGen,
+    interesesCob: interesesCob,
+    capRecuperado: capRecuperado,
+    ganancia: ganancia,
+    totalCalle: totalCalle,
+    capitalCalle: capitalCalle,
+    clientes: clientes
+  };
+}
+
+function renderBalances(periodo, valor) {
+  var res = calcularBalances(periodo, valor);
+  
+  // Resumen
+  document.getElementById('bal-total-calle').textContent = formatMoney(res.totalCalle);
+  document.getElementById('bal-capital-calle').textContent = formatMoney(res.capitalCalle);
+  document.getElementById('bal-clientes').textContent = res.clientes;
+  
+  // Detalle
+  document.getElementById('bal-cap-prestado').textContent = formatMoney(res.capPrestado);
+  document.getElementById('bal-intereses-gen').textContent = formatMoney(res.interesesGen);
+  document.getElementById('bal-intereses-cob').textContent = formatMoney(res.interesesCob);
+  document.getElementById('bal-cap-recuperado').textContent = formatMoney(res.capRecuperado);
+  document.getElementById('bal-ganancia').textContent = formatMoney(res.ganancia);
+}
+
+function renderLiquidaciones() {
+  var cont = document.getElementById('bal-lista-liquidaciones');
+  var items = (D.liquidaciones || []).slice().reverse();
+  if (!items.length) {
+    cont.innerHTML = '<div class="empty-state"><span class="empty-icon">📊</span><p>No hay liquidaciones aún</p><p style="font-size:.8rem;color:var(--text-dim)">Usa el botón "Liquidar período" cuando quieras cerrar cuentas</p></div>';
+    return;
+  }
+  cont.innerHTML = items.map(function(liq) {
+    return '<div class="bal-liq-item"><div class="bal-liq-header"><span class="bal-liq-periodo">📅 ' + escHtml(liq.periodo) + '</span><span class="bal-liq-ganancia">+ ' + formatMoney(liq.ganancia) + '</span></div><div class="bal-liq-detalle"><span>💰 Capital: ' + formatMoney(liq.capPrestado) + '</span><span>📈 Int. cobrados: ' + formatMoney(liq.interesesCob) + '</span></div><div class="bal-liq-fecha">🗓️ ' + formatDate(liq.fecha) + '</div></div>';
+  }).join('');
+}
+
+function llenarSelectorMeses() {
+  var sel = document.getElementById('bal-selector-mes');
+  if (!sel) return;
+  sel.innerHTML = '';
+  var meses = {};
+  D.historial.forEach(function(h) {
+    var m = h.fecha.slice(0,7);
+    meses[m] = true;
+  });
+  D.prestamos.forEach(function(p) {
+    var f = p.fechaInicio || String(p.id);
+    var m = f.slice(0,7);
+    if (m.length === 7) meses[m] = true;
+  });
+  var lista = Object.keys(meses).sort().reverse();
+  if (!lista.length) {
+    var hoy = new Date();
+    lista.push(hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0'));
+  }
+  lista.forEach(function(m) {
+    var opt = document.createElement('option');
+    opt.value = m;
+    var partes = m.split('-');
+    var nomMes = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    opt.textContent = nomMes[parseInt(partes[1])-1] + ' ' + partes[0];
+    sel.appendChild(opt);
+  });
 }
 
 // ========== DETAIL ==========
@@ -958,7 +1251,71 @@ document.addEventListener('DOMContentLoaded',function(){
   });
   document.getElementById('btn-exportar').addEventListener('click',function(){var data=JSON.stringify(D,null,2);var blob=new Blob([data],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;var d=todayStr();a.download='reditos-backup-'+d+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);showToast('✅ Respaldo descargado');});
   document.getElementById('btn-importar').addEventListener('click',function(){document.getElementById('input-importar').click();});
-  document.getElementById('input-importar').addEventListener('change',function(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var data=JSON.parse(ev.target.result);if(!data.prestamos||!data.version){showToast('❌ El archivo no parece un respaldo válido');return;}if(!confirm('¿Restaurar respaldo? Se reemplazarán TODOS los datos actuales.'))return;D.prestamos=data.prestamos||[];D.historial=data.historial||[];D.pagos=data.pagos||[];saveToFirestore().then(function(){location.reload();});}catch(e){showToast('❌ Error al leer el archivo');}};reader.readAsText(file);this.value='';});
+  document.getElementById('input-importar').addEventListener('change',function(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){try{var data=JSON.parse(ev.target.result);if(!data.prestamos||!data.version){showToast('❌ El archivo no parece un respaldo válido');return;}if(!confirm('¿Restaurar respaldo? Se reemplazarán TODOS los datos actuales.'))return;D.prestamos=data.prestamos||[];D.historial=data.historial||[];D.pagos=data.pagos||[];D.liquidaciones=data.liquidaciones||[];saveToFirestore().then(function(){location.reload();});}catch(e){showToast('❌ Error al leer el archivo');}};reader.readAsText(file);this.value='';});
+  
+  // ====== BALANCE EVENTS ======
+  document.querySelectorAll('.filtro-tab').forEach(function(el) {
+    el.addEventListener('click', function() {
+      document.querySelectorAll('.filtro-tab').forEach(function(x) { x.classList.remove('active'); });
+      this.classList.add('active');
+      var periodo = this.dataset.periodo;
+      BAL_PERIODO_ACTUAL = periodo;
+      document.getElementById('bal-rango').style.display = periodo === 'rango' ? 'flex' : 'none';
+      document.getElementById('bal-selector-periodo').style.display = (periodo === 'mes' || periodo === 'quincena' || periodo === 'semana') ? 'block' : 'none';
+      if (periodo === 'mes') {
+        llenarSelectorMeses();
+        renderBalances('mes', document.getElementById('bal-selector-mes').value);
+      } else if (periodo === 'quincena' || periodo === 'semana') {
+        renderBalances(periodo);
+      } else if (periodo === 'dia') {
+        renderBalances('dia');
+      } else if (periodo === 'rango') {
+        renderBalances('rango');
+      } else {
+        renderBalances('todo');
+      }
+    });
+  });
+  
+  document.getElementById('bal-selector-mes').addEventListener('change', function() {
+    renderBalances('mes', this.value);
+  });
+  
+  document.getElementById('btn-bal-aplicar-rango').addEventListener('click', function() {
+    BAL_DESDE = document.getElementById('bal-desde').value;
+    BAL_HASTA = document.getElementById('bal-hasta').value;
+    if (!BAL_DESDE || !BAL_HASTA) { showToast('⚠️ Selecciona fecha de inicio y fin'); return; }
+    renderBalances('rango');
+  });
+  
+  document.getElementById('btn-liquidar').addEventListener('click', function() {
+    var periodoLabel = '';
+    var pestanaActiva = document.querySelector('.filtro-tab.active');
+    if (pestanaActiva) periodoLabel = pestanaActiva.textContent.trim();
+    
+    var res = calcularBalances(BAL_PERIODO_ACTUAL);
+    if (res.capPrestado === 0 && res.interesesCob === 0 && res.ganancia === 0) {
+      if (!confirm('⚠️ No hay movimientos en este período. ¿Liquidar de todas formas?')) return;
+    }
+    
+    var nombrePeriodo = periodoLabel || 'Período actual';
+    var liq = {
+      id: Date.now() + Math.floor(Math.random() * 999),
+      fecha: todayStr(),
+      periodo: nombrePeriodo,
+      capPrestado: res.capPrestado,
+      interesesGen: res.interesesGen,
+      interesesCob: res.interesesCob,
+      capRecuperado: res.capRecuperado,
+      ganancia: res.ganancia
+    };
+    if (!D.liquidaciones) D.liquidaciones = [];
+    D.liquidaciones.push(liq);
+    saveToFirestore().then(function() {
+      renderLiquidaciones();
+      showToast('✅ Período liquidado: ' + formatMoney(res.ganancia) + ' de ganancia');
+    });
+  });
 });
 })();
 </script>
