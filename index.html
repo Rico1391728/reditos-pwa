@@ -80,8 +80,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 .stat-label{font-size:.58rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.02em}
 .stat-value{font-size:.92rem;font-weight:700;margin-top:2px}
 .nav{display:flex;background:var(--bg-card);border-radius:var(--radius);margin:8px 16px 0;overflow:hidden;border:1px solid var(--border)}
-.tab{flex:1;text-align:center;padding:10px 4px;font-size:.82rem;cursor:pointer;color:var(--text-dim);transition:all .2s;border-bottom:2px solid transparent;font-weight:500;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.tab-icon-below{font-size:.7rem;line-height:1;margin-top:2px}
+.tab{flex:1;text-align:center;padding:10px 4px;font-size:.82rem;cursor:pointer;color:var(--text-dim);transition:all .2s;border-bottom:2px solid transparent;font-weight:500}
 .tab.active{color:var(--primary);border-bottom-color:var(--primary);background:rgba(6,182,212,.08)}
 .tab-content{display:none;padding:0 16px}
 .tab-content.active{display:block}
@@ -241,13 +240,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
       <div class="stat" style="grid-column: span 3; margin-top: 4px;"><div class="stat-label">Préstamos Activos</div><div class="stat-value" id="stat-activos">0</div></div>
     </div>
     <div class="nav">
-      <div class="tab active" data-tab="prestamos"><span>Préstamos</span></div>
-      <div class="tab" data-tab="historial"><span>Intereses</span></div>
-      <div class="tab" data-tab="pagos"><span>Pagos</span></div>
-      <div class="tab" data-tab="balances">
-        <span>Balances</span>
-        <span class="tab-icon-below">📊</span>
-      </div>
+      <div class="tab active" data-tab="prestamos">Préstamos</div>
+      <div class="tab" data-tab="historial">Intereses</div>
+      <div class="tab" data-tab="pagos">Pagos</div>
+      <div class="tab" data-tab="balances">Balances</div>
     </div>
   </div>
 
