@@ -344,7 +344,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 <div class="modal-header"><h2 id="modal-prestamo-titulo">Nuevo préstamo</h2><button class="btn-close" data-close="modal-prestamo">&times;</button></div>
 <form id="form-prestamo" style="padding:16px 20px 20px">
 <input type="hidden" id="editando-prestamo-id">
-<div class="form-group"><label>Nombre del deudor</label><input type="text" id="nombre-deudor" required placeholder="Ej: Juan Pérez"></div>
+<div class="form-group"><label>Nombre del deudor</label><input type="text" id="nombre-deudor" required placeholder="Ej: Juan Pérez" list="lista-clientes"><datalist id="lista-clientes"></datalist></div>
 <div class="form-group"><label>Capital prestado ($)</label><input type="number" id="capital" required min="1" step="0.01" placeholder="0.00"></div>
 <div class="form-group"><label>Tasa de interés (%)</label><input type="number" id="tasa" required min="0.1" step="0.1" placeholder="Ej: 5"></div>
 <div class="form-group"><label>Frecuencia</label><select id="frecuencia"><option value="diario">Diario</option><option value="semanal">Semanal</option><option value="quincenal" selected>Quincenal</option><option value="mensual">Mensual</option></select></div>
@@ -848,6 +848,13 @@ function getNoCobrados(pid) { return D.historial.filter(function(h){return h.pre
 function renderAll() {
   updateRouteFilter(); renderStats(); renderPrestamos(); renderHistorial(); renderPagos();
   renderBalances(BAL_PERIODO_ACTUAL); renderLiquidaciones();
+  actualizarListaClientes();
+}
+function actualizarListaClientes() {
+  var names = {};
+  D.prestamos.forEach(function(p) { names[p.nombre] = true; });
+  var dl = document.getElementById('lista-clientes');
+  dl.innerHTML = Object.keys(names).map(function(n) { return '<option value="' + escHtml(n) + '">'; }).join('');
 }
 function renderStats() {
   var active = getActivePrestamos().filter(function(p){return !p.pagado;});
@@ -1108,6 +1115,23 @@ function llenarSelectorMeses() {
 function openDetalle(pid) {
   var p = getPrestamo(pid); if (!p) return;
   document.getElementById('detalle-titulo').textContent = p.nombre + (p.ruta ? ' 🛣️' + p.ruta : '');
+  
+  // Encontrar todos los préstamos del mismo cliente
+  var prestamosCliente = D.prestamos.filter(function(x) { return x.nombre === p.nombre; });
+  var otrosPrestamos = prestamosCliente.filter(function(x) { return x.id !== p.id; });
+  
+  // HTML de préstamos relacionados
+  var otrosHtml = '';
+  if (otrosPrestamos.length) {
+    otrosHtml = '<div class="detalle-historial" style="margin-bottom:16px"><h3 style="font-size:.95rem">📋 Todos los préstamos de ' + escHtml(p.nombre) + '</h3>';
+    otrosPrestamos.forEach(function(op) {
+      var pend = op.capital - (op.capitalPagado || 0);
+      var st = op.pagado ? '<span style="color:var(--success)">✅ Pagado</span>' : '<span style="color:var(--warning)">💵 Debe ' + formatMoney(pend) + '</span>';
+      otrosHtml += '<div class="loan-card" data-id="' + op.id + '" style="cursor:pointer;' + (op.pagado ? 'opacity:.6' : '') + '"><div class="row1"><div><div class="name">' + (op.pagado ? '✅ ' : '') + escHtml(op.nombre) + '</div><span style="font-size:.75rem;color:var(--text-dim)">' + formatMoney(op.capital) + ' · ' + op.tasa + '% · ' + freqLabel(op.frecuencia) + '</span></div><div class="amt" style="font-size:.9rem">' + st + '</div></div></div>';
+    });
+    otrosHtml += '</div>';
+  }
+  
   var hPre = getHistorial(pid); var pe = p.interesesPendientes || 0; var tg = p.totalIntereses || 0;
   var hp = hPre.length ? hPre.slice(0,50).map(function(h){return '<div class="historial-entry"><span class="historial-fecha">'+formatDateShort(h.fecha)+'</span><span class="historial-monto">'+formatMoney(h.monto)+'</span><span style="font-size:.7rem;color:'+(h.cobrado?'var(--text-dim)':'var(--warning)')+'">'+(h.cobrado?'✅':'⏳')+'</span></div>';}).join('') : '<p style="color:var(--text-dim);font-size:.85rem">Sin intereses aún</p>';
   var pPre = D.pagos.filter(function(pg){return pg.prestamoId===pid;});
@@ -1250,7 +1274,7 @@ document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('[data-close]').forEach(function(e){e.addEventListener('click',function(){document.getElementById(this.dataset.close).classList.remove('open');});});
   document.querySelectorAll('.modal-overlay').forEach(function(o){o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
   document.getElementById('lista-prestamos').addEventListener('click',function(e){var c=e.target.closest('.loan-card');if(c)openDetalle(parseInt(c.dataset.id));});
-  document.getElementById('detalle-contenido').addEventListener('click',function(e){var bp=e.target.closest('[data-pagar]');if(bp){abrirFormPago(parseInt(bp.dataset.pagar));return;}var bf=e.target.closest('[data-factura]');if(bf){generarFactura(parseInt(bf.dataset.factura));return;}var be=e.target.closest('[data-editar]');if(be){abrirEditarPrestamo(parseInt(be.dataset.editar));return;}var bc=e.target.closest('[data-compartir]');if(bc){compartirPrestamo(parseInt(bc.dataset.compartir));return;}var bd=e.target.closest('[data-eliminar]');if(bd){eliminarPrestamo(parseInt(bd.dataset.eliminar));}});
+  document.getElementById('detalle-contenido').addEventListener('click',function(e){var bp=e.target.closest('[data-pagar]');if(bp){abrirFormPago(parseInt(bp.dataset.pagar));return;}var bf=e.target.closest('[data-factura]');if(bf){generarFactura(parseInt(bf.dataset.factura));return;}var be=e.target.closest('[data-editar]');if(be){abrirEditarPrestamo(parseInt(be.dataset.editar));return;}var bc=e.target.closest('[data-compartir]');if(bc){compartirPrestamo(parseInt(bc.dataset.compartir));return;}var bd=e.target.closest('[data-eliminar]');if(bd){eliminarPrestamo(parseInt(bd.dataset.eliminar));}var bl=e.target.closest('.loan-card[data-id]');if(bl){openDetalle(parseInt(bl.dataset.id));}});
   document.addEventListener('click',function(e){var bp=e.target.closest('.btn-editar-pago');if(bp){abrirEditarPago(parseInt(bp.dataset.pgid),parseInt(bp.dataset.pid));}});
   document.getElementById('fecha-inicio').value=todayStr();document.getElementById('pago-fecha').value=todayStr();
   document.getElementById('btn-backup-top').addEventListener('click',function(){
