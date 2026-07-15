@@ -882,21 +882,20 @@ function actualizarListaClientes() {
   dl.innerHTML = Object.keys(names).map(function(n) { return '<option value="' + escHtml(n) + '">'; }).join('');
 }
 function renderStats() {
-  var active = getActivePrestamos().filter(function(p){return !p.pagado;});
-  var cap=0,int_=0,pen=0,cpag=0; 
-  active.forEach(function(p){
-    cap+=p.capital;
-    int_+=p.totalIntereses||0;
-    pen+=p.interesesPendientes||0;
-    cpag+=p.capitalPagado||0;
+  var cap=0,int_=0,pen=0,cpag=0;
+  D.prestamos.forEach(function(p){
+    cap += p.capital;
+    int_ += p.totalIntereses || 0;
+    pen += p.interesesPendientes || 0;
+    cpag += p.capitalPagado || 0;
   });
   document.getElementById('stat-capital').textContent = formatMoney(cap);
   document.getElementById('stat-cap-pagado').textContent = formatMoney(cpag);
-  document.getElementById('stat-cap-pend').textContent = formatMoney(cap-cpag);
+  document.getElementById('stat-cap-pend').textContent = formatMoney(cap - cpag);
   document.getElementById('stat-intereses').textContent = formatMoney(int_);
-  document.getElementById('stat-int-cobrado').textContent = formatMoney(int_-pen);
+  document.getElementById('stat-int-cobrado').textContent = formatMoney(int_ - pen);
   document.getElementById('stat-pendiente').textContent = formatMoney(pen);
-  document.getElementById('stat-activos').textContent = active.length;
+  document.getElementById('stat-activos').textContent = getActivePrestamos().filter(function(p){return !p.pagado;}).length;
 }
 function renderPrestamos() {
   var cont = document.getElementById('lista-prestamos');
