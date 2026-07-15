@@ -440,7 +440,8 @@ function listenToFirestore() {
       D.version = remote.version || 4;
       localStorage.setItem('reditos_data_v2', JSON.stringify(D));
       syncing = false;
-      generateInterests();
+      var changed = generateInterests();
+      if (changed) { saveToFirestore(); }
       renderAll();
     }, function(err) {
       console.warn('Firestore listen error:', err);
@@ -844,11 +845,13 @@ function escHtml(s) { if(!s) return ''; return String(s).replace(/&/g,'&amp;').r
 // ========== INTERESTS ==========
 function generateInterests() {
   var today = todayStr();
+  var changed = false;
   D.prestamos.forEach(function(p) {
     if (p.pagado) return;
     var desde = p.ultimoInteres || p.fechaInicio;
     var periods = periodsBetween(desde, today, p.frecuencia);
     if (periods <= 0) return;
+    changed = true;
     for (var i = 0; i < periods; i++) {
       var fechaInt = addPeriods(i + 1, desde, p.frecuencia);
       D.historial.push({ id: newId(), prestamoId: p.id, monto: p.capital * (p.tasa / 100), fecha: fechaInt, cobrado: false, pagoId: null });
@@ -857,6 +860,7 @@ function generateInterests() {
     if (p.ultimoInteres > today) p.ultimoInteres = today;
   });
   recalcAllPendientes();
+  return changed;
 }
 function recalcAllPendientes() { D.prestamos.forEach(function(p) { recalcPendientes(p.id); }); }
 function recalcPendientes(pid) { var p = getPrestamo(pid); if(!p) return; p.totalIntereses = 0; p.interesesPendientes = 0; D.historial.forEach(function(h) { if (h.prestamoId !== pid) return; p.totalIntereses += h.monto; if (!h.cobrado) p.interesesPendientes += h.monto; }); }
@@ -1216,7 +1220,7 @@ function eliminarPrestamo(pid) {
   D.prestamos = D.prestamos.filter(function(p){return p.id!==pid;});
   D.historial = D.historial.filter(function(h){return h.prestamoId!==pid;});
   D.pagos = D.pagos.filter(function(pg){return pg.prestamoId!==pid;});
-  saveToFirestore().then(function() { document.getElementById('modal-detalle').classList.remove('open'); showToast('🗑️ Eliminado'); });
+  saveToFirestore().then(function() { document.getElementById('modal-detalle').classList.remove('open'); showToast('🗑️ Eliminado'); renderAll(); });
 }
 function abrirNuevoPrestamoCliente(nombre) {
   document.getElementById('modal-prestamo-titulo').textContent = 'Nuevo préstamo';
