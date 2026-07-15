@@ -345,6 +345,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 <form id="form-prestamo" style="padding:16px 20px 20px">
 <input type="hidden" id="editando-prestamo-id">
 <div class="form-group"><label>Nombre del deudor</label><input type="text" id="nombre-deudor" required placeholder="Ej: Juan Pérez" list="lista-clientes"><datalist id="lista-clientes"></datalist></div>
+<div class="form-group"><label>Cédula</label><input type="text" id="cedula" placeholder="Ej: 001-1234567-8"></div>
+<div class="form-group"><label>Dirección</label><input type="text" id="direccion" placeholder="Ej: Calle Principal #45, Villa Consuelo"></div>
 <div class="form-group"><label>Capital prestado ($)</label><input type="number" id="capital" required min="1" step="0.01" placeholder="0.00"></div>
 <div class="form-group"><label>Tasa de interés (%)</label><input type="number" id="tasa" required min="0.1" step="0.1" placeholder="Ej: 5"></div>
 <div class="form-group"><label>Frecuencia</label><select id="frecuencia"><option value="diario">Diario</option><option value="semanal">Semanal</option><option value="quincenal" selected>Quincenal</option><option value="mensual">Mensual</option></select></div>
@@ -1160,8 +1162,13 @@ function openDetalle(pid) {
   // Botón para nuevo préstamo al mismo cliente
   var nuevoBtn = '<button class="btn btn-primary" data-nuevo-mismo="' + escHtml(p.nombre) + '">➕ Nuevo préstamo</button>';
 
+  var infoExtra = '';
+  if (p.cedula) infoExtra += '<div style="margin-bottom:4px;font-size:.85rem;color:var(--text-dim)">🪪 Cédula: ' + escHtml(p.cedula) + '</div>';
+  if (p.direccion) infoExtra += '<div style="margin-bottom:4px;font-size:.85rem;color:var(--text-dim)">📍 Dirección: ' + escHtml(p.direccion) + '</div>';
+  if (p.ruta) infoExtra += '<div style="margin-bottom:12px;font-size:.85rem;color:var(--primary)">🛣️ Ruta: '+escHtml(p.ruta)+'</div>';
+
   var acc = (p.pagado ? '' : '<button class="btn btn-primary" data-pagar="'+p.id+'">💵 Pago</button>') + nuevoBtn + '<button class="btn btn-warning" data-factura="'+p.id+'">📄 Factura</button>' + (currentMode === 'admin' ? '<button class="btn btn-secondary" data-editar="'+p.id+'">✏️ Editar</button><button class="btn btn-outline" data-compartir="'+p.id+'">📤 Compartir</button><button class="btn btn-danger" data-eliminar="'+p.id+'">🗑️ Eliminar</button>' : '');
-  document.getElementById('detalle-contenido').innerHTML = '<div class="detalle-grid"><div class="detalle-item"><label>Capital</label><span>'+formatMoney(p.capital)+'</span></div><div class="detalle-item"><label>Capital Pagado</label><span style="color:var(--success)">'+formatMoney(p.capitalPagado||0)+'</span></div><div class="detalle-item"><label>Capital Pendiente</label><span style="color:var(--warning)">'+formatMoney(p.capital-(p.capitalPagado||0))+'</span></div><div class="detalle-item"><label>Tasa</label><span>'+p.tasa+'%</span></div><div class="detalle-item"><label>Frecuencia</label><span>'+freqLabel(p.frecuencia)+'</span></div><div class="detalle-item"><label>Desde</label><span>'+formatDate(p.fechaInicio)+'</span></div><div class="detalle-item"><label>Interés generado</label><span style="color:var(--success)">'+formatMoney(tg)+'</span></div><div class="detalle-item"><label>Pendiente</label><span style="color:var(--warning)">'+formatMoney(pe)+'</span></div></div>'+(p.ruta?'<div style="margin-bottom:12px;font-size:.85rem;color:var(--primary)">🛣️ Ruta: '+escHtml(p.ruta)+'</div>':'')+notasHtml+'<div class="detalle-historial"><h3>Intereses</h3>'+hp+'</div><div class="detalle-historial" style="margin-top:16px"><h3>Pagos</h3>'+pp+'</div><div class="detalle-actions">'+acc+'</div>';
+  document.getElementById('detalle-contenido').innerHTML = '<div class="detalle-grid"><div class="detalle-item"><label>Capital</label><span>'+formatMoney(p.capital)+'</span></div><div class="detalle-item"><label>Capital Pagado</label><span style="color:var(--success)">'+formatMoney(p.capitalPagado||0)+'</span></div><div class="detalle-item"><label>Capital Pendiente</label><span style="color:var(--warning)">'+formatMoney(p.capital-(p.capitalPagado||0))+'</span></div><div class="detalle-item"><label>Tasa</label><span>'+p.tasa+'%</span></div><div class="detalle-item"><label>Frecuencia</label><span>'+freqLabel(p.frecuencia)+'</span></div><div class="detalle-item"><label>Desde</label><span>'+formatDate(p.fechaInicio)+'</span></div><div class="detalle-item"><label>Interés generado</label><span style="color:var(--success)">'+formatMoney(tg)+'</span></div><div class="detalle-item"><label>Pendiente</label><span style="color:var(--warning)">'+formatMoney(pe)+'</span></div></div>'+(p.ruta||p.cedula||p.direccion?infoExtra:'')+notasHtml+'<div class="detalle-historial"><h3>Intereses</h3>'+hp+'</div><div class="detalle-historial" style="margin-top:16px"><h3>Pagos</h3>'+pp+'</div><div class="detalle-actions">'+acc+'</div>';
   document.getElementById('modal-detalle').classList.add('open');
 }
 
@@ -1170,6 +1177,8 @@ function guardarPrestamo(e) {
   e.preventDefault();
   var editId = document.getElementById('editando-prestamo-id').value;
   var nombre = document.getElementById('nombre-deudor').value.trim();
+  var cedula = document.getElementById('cedula').value.trim();
+  var direccion = document.getElementById('direccion').value.trim();
   var capital = parseFloat(document.getElementById('capital').value);
   var tasa = parseFloat(document.getElementById('tasa').value);
   var frecuencia = document.getElementById('frecuencia').value;
@@ -1180,7 +1189,7 @@ function guardarPrestamo(e) {
   if (!nombre || !capital || !tasa || !frecuencia || !fechaInicio) { showToast('Completa todos los campos'); return; }
   if (editId) {
     var p = getPrestamo(parseInt(editId)); if (!p) { showToast('Error'); return; }
-    p.nombre = nombre; p.capital = capital; p.tasa = tasa; p.frecuencia = frecuencia;
+    p.nombre = nombre; p.cedula = cedula; p.direccion = direccion; p.capital = capital; p.tasa = tasa; p.frecuencia = frecuencia;
     p.fechaInicio = fechaInicio; p.notas = notas; p.ruta = ruta || '';
     D.historial = D.historial.filter(function(h) { return h.prestamoId !== p.id; });
     p.ultimoInteres = fechaInicio; p.interesesPendientes = 0; p.totalIntereses = 0;
@@ -1193,7 +1202,7 @@ function guardarPrestamo(e) {
       showToast('✅ Préstamo actualizado');
     });
   } else {
-    var nuevo = { id: newId(), nombre: nombre, capital: capital, tasa: tasa, frecuencia: frecuencia, fechaInicio: fechaInicio, notas: notas, ruta: ruta || '', pagado: false, fechaPago: null, ultimoInteres: fechaInicio, interesesPendientes: 0, totalIntereses: 0, capitalPagado: 0, fechaCreacion: new Date().toISOString() };
+    var nuevo = { id: newId(), nombre: nombre, cedula: cedula, direccion: direccion, capital: capital, tasa: tasa, frecuencia: frecuencia, fechaInicio: fechaInicio, notas: notas, ruta: ruta || '', pagado: false, fechaPago: null, ultimoInteres: fechaInicio, interesesPendientes: 0, totalIntereses: 0, capitalPagado: 0, fechaCreacion: new Date().toISOString() };
     if (interesesPrevios > 0) { D.historial.push({ id: newId(), prestamoId: nuevo.id, monto: interesesPrevios, fecha: fechaInicio, cobrado: false, pagoId: null }); nuevo.interesesPendientes = interesesPrevios; nuevo.totalIntereses = interesesPrevios; }
     D.prestamos.push(nuevo);
     saveToFirestore().then(function() {
@@ -1214,6 +1223,8 @@ function abrirNuevoPrestamoCliente(nombre) {
   document.getElementById('editando-prestamo-id').value = '';
   document.getElementById('form-prestamo').reset();
   document.getElementById('nombre-deudor').value = nombre;
+  document.getElementById('cedula').value = '';
+  document.getElementById('direccion').value = '';
   document.getElementById('ruta-input').value = '';
   document.getElementById('fecha-inicio').value = todayStr();
   document.getElementById('modal-detalle').classList.remove('open');
@@ -1223,7 +1234,7 @@ function abrirEditarPrestamo(pid) {
   var p = getPrestamo(pid); if (!p) return;
   document.getElementById('modal-prestamo-titulo').textContent = 'Editar préstamo';
   document.getElementById('editando-prestamo-id').value = pid;
-  document.getElementById('nombre-deudor').value = p.nombre; document.getElementById('capital').value = p.capital;
+  document.getElementById('nombre-deudor').value = p.nombre; document.getElementById('cedula').value = p.cedula || ''; document.getElementById('direccion').value = p.direccion || ''; document.getElementById('capital').value = p.capital;
   document.getElementById('tasa').value = p.tasa; document.getElementById('frecuencia').value = p.frecuencia;
   document.getElementById('fecha-inicio').value = p.fechaInicio; document.getElementById('ruta-input').value = p.ruta || '';
   document.getElementById('intereses-previos').value = ''; document.getElementById('notas').value = p.notas || '';
