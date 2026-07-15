@@ -1006,13 +1006,20 @@ function calcularBalances(periodo, valor) {
     var fPg = new Date(pg.fecha + 'T00:00:00');
     if (desde && fPg < desde) return;
     if (hasta && fPg > hasta) return;
-    if (pg.concepto === 'capital' || pg.concepto === 'ambos') {
+    if (pg.concepto === 'capital') {
       capRecuperado += pg.monto;
+    } else if (pg.concepto === 'ambos') {
+      // Encontrar cuánto de ese pago fue para intereses
+      var interesesDelPago = 0;
+      D.historial.forEach(function(h) {
+        if (h.prestamoId === pg.prestamoId && h.pagoId === pg.id && h.cobrado) {
+          interesesDelPago += h.monto;
+        }
+      });
+      // El resto fue capital
+      capRecuperado += Math.max(0, pg.monto - interesesDelPago);
     }
   });
-  
-  // Si concepto ambos paga capital e interés, estimar mitad (es aproximado)
-  // Mejor: sumamos todo lo que no sea solo intereses
   interesesGen = Math.max(0, interesesGen);
   
   var ganancia = interesesCob;
