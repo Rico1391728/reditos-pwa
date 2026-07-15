@@ -1138,10 +1138,16 @@ function openDetalle(pid) {
   var conceptos = { intereses:'Int.', capital:'Cap.', ambos:'Cap+Int' };
   var pp = pPre.length ? pPre.map(function(pg){return '<div class="historial-entry"><span class="historial-fecha">'+formatDateShort(pg.fecha)+' · '+(conceptos[pg.concepto]||pg.concepto)+'</span><span style="color:var(--success);font-weight:600">'+formatMoney(pg.monto)+'</span>'+(currentMode === 'admin' ? '<button class="btn btn-sm btn-outline btn-editar-pago" data-pgid="'+pg.id+'" data-pid="'+pg.prestamoId+'" style="font-size:.7rem;padding:2px 6px">✏️</button>' : '')+'</div>';}).join('') : '<p style="color:var(--text-dim);font-size:.85rem">Sin pagos</p>';
   var notasHtml = p.notas ? '<div style="background:var(--bg-input);padding:12px;border-radius:var(--radius-sm);margin-bottom:16px"><small style="color:var(--text-dim);display:block;margin-bottom:4px">NOTAS</small><p style="font-size:.9rem">'+escHtml(p.notas)+'</p></div>' : '';
-  // Botón para nuevo préstamo al mismo cliente
-  var nuevoBtn = '<button class="btn btn-primary" data-nuevo-mismo="' + escHtml(p.nombre) + '">➕ Nuevo préstamo</button>';
+  // Botones principales (si está pagado, solo "Nuevo Préstamo", si no, ambos)
+  var btnPago = p.pagado ? '' : '<button class="btn btn-primary" data-pagar="'+p.id+'">💵 Pago</button>';
+  var btnNuevo = '<button class="btn btn-primary" style="background:#00bcd4;border-color:#00bcd4" data-nuevo-mismo="' + escHtml(p.nombre) + '">➕ Nuevo a ' + escHtml(p.nombre) + '</button>';
 
-  var acc = (p.pagado ? '' : '<button class="btn btn-primary" data-pagar="'+p.id+'">💵 Pago</button>') + nuevoBtn + '<button class="btn btn-warning" data-factura="'+p.id+'">📄 Factura</button>' + (currentMode === 'admin' ? '<button class="btn btn-secondary" data-editar="'+p.id+'">✏️ Editar</button><button class="btn btn-outline" data-compartir="'+p.id+'">📤 Compartir</button><button class="btn btn-danger" data-eliminar="'+p.id+'">🗑️ Eliminar</button>' : '');
+  var acc = btnPago + btnNuevo + 
+            '<button class="btn btn-warning" data-factura="'+p.id+'">📄 Factura</button>' + 
+            (currentMode === 'admin' ? 
+              '<button class="btn btn-secondary" data-editar="'+p.id+'">✏️ Editar</button>' + 
+              '<button class="btn btn-outline" data-compartir="'+p.id+'">📤 Compartir</button>' + 
+              '<button class="btn btn-danger" data-eliminar="'+p.id+'">🗑️ Eliminar</button>' : '');
   document.getElementById('detalle-contenido').innerHTML = '<div class="detalle-grid"><div class="detalle-item"><label>Capital</label><span>'+formatMoney(p.capital)+'</span></div><div class="detalle-item"><label>Capital Pagado</label><span style="color:var(--success)">'+formatMoney(p.capitalPagado||0)+'</span></div><div class="detalle-item"><label>Capital Pendiente</label><span style="color:var(--warning)">'+formatMoney(p.capital-(p.capitalPagado||0))+'</span></div><div class="detalle-item"><label>Tasa</label><span>'+p.tasa+'%</span></div><div class="detalle-item"><label>Frecuencia</label><span>'+freqLabel(p.frecuencia)+'</span></div><div class="detalle-item"><label>Desde</label><span>'+formatDate(p.fechaInicio)+'</span></div><div class="detalle-item"><label>Interés generado</label><span style="color:var(--success)">'+formatMoney(tg)+'</span></div><div class="detalle-item"><label>Pendiente</label><span style="color:var(--warning)">'+formatMoney(pe)+'</span></div></div>'+(p.ruta?'<div style="margin-bottom:12px;font-size:.85rem;color:var(--primary)">🛣️ Ruta: '+escHtml(p.ruta)+'</div>':'')+notasHtml+'<div class="detalle-historial"><h3>Intereses</h3>'+hp+'</div><div class="detalle-historial" style="margin-top:16px"><h3>Pagos</h3>'+pp+'</div><div class="detalle-actions">'+acc+'</div>';
   document.getElementById('modal-detalle').classList.add('open');
 }
