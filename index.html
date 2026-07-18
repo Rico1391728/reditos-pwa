@@ -237,6 +237,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
       <div class="stat"><div class="stat-label">Intereses</div><div class="stat-value" id="stat-intereses">$0</div></div>
       <div class="stat"><div class="stat-label">Int. Cobrado</div><div class="stat-value" id="stat-int-cobrado" style="color:var(--success)">$0</div></div>
       <div class="stat"><div class="stat-label">Int. Pendiente</div><div class="stat-value" id="stat-pendiente" style="color:var(--warning)">$0</div></div>
+      <div class="stat"><div class="stat-label">Int. Perdonado</div><div class="stat-value" id="stat-int-perdonado" style="color:var(--danger)">$0</div></div>
       <div class="stat" style="grid-column: span 3; margin-top: 4px;"><div class="stat-label">Préstamos Activos</div><div class="stat-value" id="stat-activos">0</div></div>
     </div>
     <div class="nav">
@@ -317,6 +318,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
           <span class="bal-monto" id="bal-intereses-cob" style="color:var(--success)">$0</span>
         </div>
         <div class="bal-detalle-row">
+          <span>Intereses perdonados</span>
+          <span class="bal-monto" id="bal-intereses-perdonados" style="color:var(--danger)">$0</span>
+        </div>
+        <div class="bal-detalle-row">
           <span>Capital recuperado</span>
           <span class="bal-monto" id="bal-cap-recuperado" style="color:var(--success)">$0</span>
         </div>
@@ -364,6 +369,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 <input type="hidden" id="pago-prestamo-id">
 <div class="form-group"><label>Fecha</label><input type="date" id="pago-fecha"></div>
 <div class="form-group"><label>Monto ($)</label><input type="number" id="pago-monto" required step="0.01" placeholder="0.00"></div>
+<div class="form-group"><label>Rebaja / Descuento ($)</label><input type="number" id="pago-descuento" step="0.01" placeholder="0.00" value="0">
+<small style="color:var(--text-dim);font-size:.7rem;display:block;margin-top:2px">Cortesía que le haces al cliente — intereses perdonados</small></div>
 <div class="form-group"><label>Concepto</label><select id="pago-concepto"><option value="intereses">Intereses</option><option value="capital">Capital</option><option value="ambos">Capital + Intereses</option></select></div>
 <div class="form-actions"><button type="submit" class="btn btn-primary">Guardar pago</button><button type="button" class="btn btn-outline" data-close="modal-pago">Cancelar</button></div>
 </form></div></div>
@@ -892,9 +899,17 @@ function renderStats() {
   document.getElementById('stat-capital').textContent = formatMoney(cap);
   document.getElementById('stat-cap-pagado').textContent = formatMoney(cpag);
   document.getElementById('stat-cap-pend').textContent = formatMoney(cap - cpag);
+    var descuentosTotal = 0;
+  D.pagos.forEach(function(pg) {
+    if (pg.concepto === 'intereses' || pg.concepto === 'ambos') {
+      descuentosTotal += pg.descuento || 0;
+    }
+  });
+  var intCob = Math.max(0, int_ - pen - descuentosTotal);
   document.getElementById('stat-intereses').textContent = formatMoney(int_);
-  document.getElementById('stat-int-cobrado').textContent = formatMoney(int_ - pen);
+  document.getElementById('stat-int-cobrado').textContent = formatMoney(intCob);
   document.getElementById('stat-pendiente').textContent = formatMoney(pen);
+  document.getElementById('stat-int-perdonado').textContent = formatMoney(descuentosTotal);
   document.getElementById('stat-activos').textContent = getActivePrestamos().filter(function(p){return !p.pagado;}).length;
 }
 function renderPrestamos() {
@@ -1053,6 +1068,20 @@ function calcularBalances(periodo, valor) {
   });
   interesesGen = Math.max(0, interesesGen);
   
+  // Descuentos aplicados en el período
+  var interesesPerdonados = 0;
+  D.pagos.forEach(function(pg) {
+    if (!pg.descuento || pg.descuento <= 0) return;
+    if (!prestamosPeriodo[pg.prestamoId]) { if (desde || hasta) return; }
+    var fPg = new Date(pg.fecha + 'T00:00:00');
+    if (desde && fPg < desde) return;
+    if (hasta && fPg > hasta) return;
+    if (pg.concepto === 'intereses' || pg.concepto === 'ambos') {
+      interesesPerdonados += pg.descuento;
+    }
+  });
+  interesesCob = Math.max(0, interesesCob - interesesPerdonados);
+  
   var ganancia = interesesCob;
   
   // Totales generales (para resumen superior)
@@ -1070,6 +1099,7 @@ function calcularBalances(periodo, valor) {
     capPrestado: capPrestado,
     interesesGen: interesesGen,
     interesesCob: interesesCob,
+    interesesPerdonados: interesesPerdonados,
     capRecuperado: capRecuperado,
     ganancia: ganancia,
     totalCalle: totalCalle,
@@ -1090,6 +1120,7 @@ function renderBalances(periodo, valor) {
   document.getElementById('bal-cap-prestado').textContent = formatMoney(res.capPrestado);
   document.getElementById('bal-intereses-gen').textContent = formatMoney(res.interesesGen);
   document.getElementById('bal-intereses-cob').textContent = formatMoney(res.interesesCob);
+  document.getElementById('bal-intereses-perdonados').textContent = formatMoney(res.interesesPerdonados||0);
   document.getElementById('bal-cap-recuperado').textContent = formatMoney(res.capRecuperado);
   document.getElementById('bal-ganancia').textContent = formatMoney(res.ganancia);
 }
@@ -1102,7 +1133,7 @@ function renderLiquidaciones() {
     return;
   }
   cont.innerHTML = items.map(function(liq) {
-    return '<div class="bal-liq-item"><div class="bal-liq-header"><span class="bal-liq-periodo">📅 ' + escHtml(liq.periodo) + '</span><span class="bal-liq-ganancia">+ ' + formatMoney(liq.ganancia) + '</span></div><div class="bal-liq-detalle"><span>💰 Capital: ' + formatMoney(liq.capPrestado) + '</span><span>📈 Int. cobrados: ' + formatMoney(liq.interesesCob) + '</span></div><div class="bal-liq-fecha">🗓️ ' + formatDate(liq.fecha) + '</div></div>';
+    return '<div class="bal-liq-item"><div class="bal-liq-header"><span class="bal-liq-periodo">📅 ' + escHtml(liq.periodo) + '</span><span class="bal-liq-ganancia">+ ' + formatMoney(liq.ganancia) + '</span></div><div class="bal-liq-detalle"><span>💰 Capital: ' + formatMoney(liq.capPrestado) + '</span><span>📈 Int. cobrados: ' + formatMoney(liq.interesesCob) + '</span><span>💔 Perdonados: ' + formatMoney(liq.interesesPerdonados||0) + '</span></div><div class="bal-liq-fecha">🗓️ ' + formatDate(liq.fecha) + '</div></div>';
   }).join('');
 }
 
@@ -1248,7 +1279,7 @@ function abrirEditarPrestamo(pid) {
 function abrirFormPago(pid) {
   document.getElementById('editando-pago-id').value=''; document.getElementById('modal-pago-titulo').textContent='Registrar pago';
   document.getElementById('pago-prestamo-id').value=pid; document.getElementById('pago-fecha').value=todayStr();
-  document.getElementById('pago-monto').value=''; document.getElementById('pago-concepto').value='intereses';
+  document.getElementById('pago-monto').value=''; document.getElementById('pago-descuento').value='0'; document.getElementById('pago-concepto').value='intereses';
   document.getElementById('modal-detalle').classList.remove('open'); document.getElementById('modal-pago').classList.add('open');
 }
 function abrirEditarPago(pgid, pid) {
@@ -1263,6 +1294,7 @@ function guardarPago(e) {
   var editId = document.getElementById('editando-pago-id').value;
   var pid = parseInt(document.getElementById('pago-prestamo-id').value);
   var monto = parseFloat(document.getElementById('pago-monto').value);
+  var descuento = parseFloat(document.getElementById('pago-descuento').value) || 0;
   var concepto = document.getElementById('pago-concepto').value;
   var fecha = document.getElementById('pago-fecha').value;
   if (!monto || !fecha || !concepto) { showToast('Completa todos los campos'); return; }
@@ -1272,16 +1304,16 @@ function guardarPago(e) {
     if (!oldPg) { showToast('Error'); return; }
     D.historial.filter(function(h){return h.pagoId===oldPg.id;}).forEach(function(h){h.cobrado=false;h.pagoId=null;});
     if (oldPg.concepto==='capital'||oldPg.concepto==='ambos') p.capitalPagado=Math.max(0,(p.capitalPagado||0)-oldPg.monto);
-    oldPg.monto=monto; oldPg.concepto=concepto; oldPg.fecha=fecha;
-    var r=monto;
+    oldPg.monto=monto; oldPg.descuento=descuento; oldPg.concepto=concepto; oldPg.fecha=fecha;
+    var r=monto+descuento;
     if (concepto==='intereses'||concepto==='ambos') { var pend=getNoCobrados(pid).sort(function(a,b){return a.fecha.localeCompare(b.fecha);}); for(var i=0;i<pend.length;i++){if(r<=0)break;var a=Math.min(r,pend[i].monto);pend[i].cobrado=true;pend[i].pagoId=oldPg.id;r-=a;} }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
     recalcPendientes(pid); checkPagado(pid);
     saveToFirestore().then(function(){document.getElementById('modal-pago').classList.remove('open');showToast('✅ Pago actualizado');generarFacturaAuto(pid);});
   } else {
-    var pago = { id: newId(), prestamoId: pid, monto: monto, concepto: concepto, fecha: fecha, notas: '', fechaCreacion: new Date().toISOString() };
+    var pago = { id: newId(), prestamoId: pid, monto: monto, descuento: descuento, concepto: concepto, fecha: fecha, notas: '', fechaCreacion: new Date().toISOString() };
     D.pagos.push(pago);
-    var r=monto;
+    var r=monto+descuento;
     if (concepto==='intereses'||concepto==='ambos') { var pend=getNoCobrados(pid).sort(function(a,b){return a.fecha.localeCompare(b.fecha);}); for(var i=0;i<pend.length;i++){if(r<=0)break;var a=Math.min(r,pend[i].monto);pend[i].cobrado=true;pend[i].pagoId=pago.id;r-=a;} }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
     recalcPendientes(pid); checkPagado(pid);
@@ -1372,7 +1404,7 @@ document.addEventListener('DOMContentLoaded',function(){
     if (pestanaActiva) periodoLabel = pestanaActiva.textContent.trim();
     
     var res = calcularBalances(BAL_PERIODO_ACTUAL);
-    if (res.capPrestado === 0 && res.interesesCob === 0 && res.ganancia === 0) {
+    if (res.capPrestado === 0 && res.interesesCob === 0 && res.interesesPerdonados === 0 && res.ganancia === 0) {
       if (!confirm('⚠️ No hay movimientos en este período. ¿Liquidar de todas formas?')) return;
     }
     
@@ -1384,6 +1416,7 @@ document.addEventListener('DOMContentLoaded',function(){
       capPrestado: res.capPrestado,
       interesesGen: res.interesesGen,
       interesesCob: res.interesesCob,
+      interesesPerdonados: res.interesesPerdonados,
       capRecuperado: res.capRecuperado,
       ganancia: res.ganancia
     };
