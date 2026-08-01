@@ -447,6 +447,7 @@ function listenToFirestore() {
       D.version = remote.version || 4;
       localStorage.setItem('reditos_data_v2', JSON.stringify(D));
       syncing = false;
+      limpiarInteresesMensualesFuturos();
       var changed = generateInterests();
       if (changed) { saveToFirestore(); }
       renderAll();
@@ -842,7 +843,7 @@ function formatDateShort(iso) { var d = new Date(iso + 'T12:00:00'); return d.to
 function freqLabel(f) { return { diario:'Diario', semanal:'Semanal', quincenal:'Quincenal', mensual:'Mensual' }[f] || f; }
 function todayStr() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function daysBetween(a, b) { return Math.floor((parseDate(b) - parseDate(a)) / 86400000); }
-function monthsBetween(a, b) { var da = parseDate(a); var db = parseDate(b); return (db.getFullYear() - da.getFullYear()) * 12 + (db.getMonth() - da.getMonth()); }
+function monthsBetween(a, b) { var da = parseDate(a); var db = parseDate(b); var months = (db.getFullYear() - da.getFullYear()) * 12 + (db.getMonth() - da.getMonth()); if (db.getDate() < da.getDate()) months--; return Math.max(0, months); }
 function quincenasBetween(a, b) { return Math.floor(daysBetween(a, b) / 15); }
 function parseDate(str) { if(!str) return new Date(); var p = str.split('T')[0].split('-'); return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2])); }
 function addPeriods(n, from, freq) { var d = new Date(from + 'T12:00:00'); if (freq === 'diario') d.setDate(d.getDate() + n); else if (freq === 'semanal') d.setDate(d.getDate() + n*7); else if (freq === 'quincenal') d.setDate(d.getDate() + n*15); else if (freq === 'mensual') d.setMonth(d.getMonth() + n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -850,6 +851,18 @@ function periodsBetween(a, b, freq) { if (freq === 'diario') return daysBetween(
 function escHtml(s) { if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ========== INTERESTS ==========
+function limpiarInteresesMensualesFuturos() {
+  var today = todayStr();
+  D.prestamos.forEach(function(p) {
+    if (p.frecuencia !== 'mensual') return;
+    var tieneFuturos = D.historial.some(function(h) { return h.prestamoId === p.id && h.fecha > today; });
+    if (tieneFuturos) {
+      D.historial = D.historial.filter(function(h) { return !(h.prestamoId === p.id && h.fecha > today); });
+      p.ultimoInteres = p.fechaInicio;
+    }
+  });
+}
+
 function generateInterests() {
   var today = todayStr();
   var changed = false;
