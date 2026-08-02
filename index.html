@@ -1358,7 +1358,7 @@ function guardarPago(e) {
     var pago = { id: newId(), prestamoId: pid, monto: monto, descuento: descuento, concepto: concepto, fecha: fecha, notas: '', fechaCreacion: new Date().toISOString() };
     D.pagos.push(pago);
     var r=monto+descuento;
-    if (concepto==='intereses'||concepto==='ambos') { var pend=getNoCobrados(pid).sort(function(a,b){return a.fecha.localeCompare(b.fecha);}); for(var i=0;i<pend.length;i++){if(r<=0)break;var a=Math.min(r,pend[i].monto);pend[i].cobrado=true;pend[i].pagoId=pago.id;r-=a;} }
+    if (concepto==='intereses'||concepto==='ambos') { r=aplicarPagoAIntereses(pid,r,pago.id); }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
     recalcPendientes(pid); checkPagado(pid);
     saveToFirestore().then(function(){document.getElementById('modal-pago').classList.remove('open');showToast('✅ Pago registrado');generarFacturaAuto(pid);});
