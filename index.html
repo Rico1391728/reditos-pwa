@@ -448,7 +448,9 @@ function listenToFirestore() {
       localStorage.setItem('reditos_data_v2', JSON.stringify(D));
       syncing = false;
       limpiarInteresesMensualesFuturos();
+      var migrated = migrarPagosParciales();
       var changed = generateInterests();
+      if (migrated) changed = true;
       if (changed) { saveToFirestore(); }
       renderAll();
     }, function(err) {
@@ -882,12 +884,41 @@ function generateInterests() {
   recalcAllPendientes();
   return changed;
 }
+function historialCobrado(h) { return typeof h.montoPagado === 'number' ? h.montoPagado : (h.cobrado ? h.monto : 0); }
+function historialPendiente(h) { return Math.max(0, h.monto - historialCobrado(h)); }
+function aplicarPagoAIntereses(pid, total, pagoId) {
+  var r = Math.max(0, total || 0);
+  var pend = getNoCobrados(pid).sort(function(a,b){return a.fecha.localeCompare(b.fecha);});
+  for (var i=0; i<pend.length && r>0; i++) {
+    var h = pend[i], restante = historialPendiente(h), aplicado = Math.min(r, restante);
+    h.montoPagado = historialCobrado(h) + aplicado;
+    h.cobrado = historialPendiente(h) <= 0.000001;
+    h.pagoId = pagoId;
+    r -= aplicado;
+  }
+  return r;
+}
+function migrarPagosParciales() {
+  if (D._partialPaymentsV2) return false;
+  var changed = false;
+  D.pagos.forEach(function(pg) {
+    if (pg.concepto !== 'intereses' && pg.concepto !== 'ambos') return;
+    var vinculados = D.historial.filter(function(h){return h.prestamoId===pg.prestamoId && h.pagoId===pg.id;});
+    if (!vinculados.length) return;
+    vinculados.forEach(function(h){ h.cobrado=false; h.montoPagado=0; h.pagoId=null; });
+    aplicarPagoAIntereses(pg.prestamoId, (pg.monto||0)+(pg.descuento||0), pg.id);
+    changed = true;
+  });
+  D._partialPaymentsV2 = true;
+  recalcAllPendientes();
+  return changed;
+}
 function recalcAllPendientes() { D.prestamos.forEach(function(p) { recalcPendientes(p.id); }); }
-function recalcPendientes(pid) { var p = getPrestamo(pid); if(!p) return; p.totalIntereses = 0; p.interesesPendientes = 0; D.historial.forEach(function(h) { if (h.prestamoId !== pid) return; p.totalIntereses += h.monto; if (!h.cobrado) p.interesesPendientes += h.monto; }); }
-function checkPagado(pid) { var p = getPrestamo(pid); if(!p) return; var tp = D.historial.filter(function(h){return h.prestamoId===pid&&!h.cobrado;}).reduce(function(s,h){return s+h.monto;},0); if ((p.capitalPagado||0) >= p.capital && tp <= 0) { p.pagado = true; p.fechaPago = todayStr(); } else { p.pagado = false; p.fechaPago = null; } }
+function recalcPendientes(pid) { var p = getPrestamo(pid); if(!p) return; p.totalIntereses = 0; p.interesesPendientes = 0; D.historial.forEach(function(h) { if (h.prestamoId !== pid) return; p.totalIntereses += h.monto; p.interesesPendientes += historialPendiente(h); }); }
+function checkPagado(pid) { var p = getPrestamo(pid); if(!p) return; var tp = D.historial.filter(function(h){return h.prestamoId===pid;}).reduce(function(s,h){return s+historialPendiente(h);},0); if ((p.capitalPagado||0) >= p.capital && tp <= 0.000001) { p.pagado = true; p.fechaPago = todayStr(); } else { p.pagado = false; p.fechaPago = null; } }
 function getPrestamo(pid) { return D.prestamos.find(function(p){return p.id===pid;}); }
 function getHistorial(pid) { return D.historial.filter(function(h){return h.prestamoId===pid;}); }
-function getNoCobrados(pid) { return D.historial.filter(function(h){return h.prestamoId===pid&&!h.cobrado;}); }
+function getNoCobrados(pid) { return D.historial.filter(function(h){return h.prestamoId===pid&&historialPendiente(h)>0.000001;}); }
 
 // ========== RENDER ==========
 function renderAll() {
@@ -918,7 +949,7 @@ function renderStats() {
       descuentosTotal += pg.descuento || 0;
     }
   });
-  var intCob = Math.max(0, int_ - pen - descuentosTotal);
+  var intCob = D.historial.reduce(function(s,h){return s+historialCobrado(h);},0);
   document.getElementById('stat-intereses').textContent = formatMoney(int_);
   document.getElementById('stat-int-cobrado').textContent = formatMoney(intCob);
   document.getElementById('stat-pendiente').textContent = formatMoney(pen);
@@ -1054,7 +1085,7 @@ function calcularBalances(periodo, valor) {
     if (desde && fInt < desde) return;
     if (hasta && fInt > hasta) return;
     interesesGen += h.monto;
-    if (h.cobrado) interesesCob += h.monto;
+    interesesCob += historialCobrado(h);
   });
   
   // Pagos (capital recuperado) en el período
@@ -1071,8 +1102,8 @@ function calcularBalances(periodo, valor) {
       // Encontrar cuánto de ese pago fue para intereses
       var interesesDelPago = 0;
       D.historial.forEach(function(h) {
-        if (h.prestamoId === pg.prestamoId && h.pagoId === pg.id && h.cobrado) {
-          interesesDelPago += h.monto;
+        if (h.prestamoId === pg.prestamoId && h.pagoId === pg.id) {
+          interesesDelPago += historialCobrado(h);
         }
       });
       // El resto fue capital
@@ -1315,11 +1346,11 @@ function guardarPago(e) {
   if (editId) {
     var oldPg = D.pagos.find(function(pg){return pg.id===parseInt(editId);});
     if (!oldPg) { showToast('Error'); return; }
-    D.historial.filter(function(h){return h.pagoId===oldPg.id;}).forEach(function(h){h.cobrado=false;h.pagoId=null;});
+    D.historial.filter(function(h){return h.pagoId===oldPg.id;}).forEach(function(h){h.cobrado=false;h.montoPagado=0;h.pagoId=null;});
     if (oldPg.concepto==='capital'||oldPg.concepto==='ambos') p.capitalPagado=Math.max(0,(p.capitalPagado||0)-oldPg.monto);
     oldPg.monto=monto; oldPg.descuento=descuento; oldPg.concepto=concepto; oldPg.fecha=fecha;
     var r=monto+descuento;
-    if (concepto==='intereses'||concepto==='ambos') { var pend=getNoCobrados(pid).sort(function(a,b){return a.fecha.localeCompare(b.fecha);}); for(var i=0;i<pend.length;i++){if(r<=0)break;var a=Math.min(r,pend[i].monto);pend[i].cobrado=true;pend[i].pagoId=oldPg.id;r-=a;} }
+    if (concepto==='intereses'||concepto==='ambos') { r=aplicarPagoAIntereses(pid,r,oldPg.id); }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
     recalcPendientes(pid); checkPagado(pid);
     saveToFirestore().then(function(){document.getElementById('modal-pago').classList.remove('open');showToast('✅ Pago actualizado');generarFacturaAuto(pid);});
