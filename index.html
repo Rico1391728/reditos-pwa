@@ -566,7 +566,7 @@ function enterAsColector(ruta) {
   document.getElementById('user-avatar').style.backgroundImage = '';
   loadLocal();
   renderAll();
-  listenToFirestore();
+  asegurarAutenticacion().then(function(){ listenToFirestore(); });
   document.getElementById('btn-nuevo-prestamo').style.display = 'none'; // ocultar botón nuevo
   document.getElementById('btn-backup-top').style.display = 'none'; // ocultar respaldos
   showToast('🔑 Acceso como cobrador: Ruta ' + ruta, 3000);
@@ -610,7 +610,7 @@ function enterAsAdminByPin() {
   loadPins();
   loadLocal();
   renderAll();
-  listenToFirestore();
+  asegurarAutenticacion().then(function(){ listenToFirestore(); });
   showToast('🔐 Bienvenido admin');
 }
 
@@ -619,7 +619,17 @@ PIN_CODES = { 'Ruta Norte': '2591', 'Ruta Sur': '7346' };
 savePinsToLocal();
 
 // --- Firebase Auth ---
+function asegurarAutenticacion() {
+  if (AUTH.currentUser) return Promise.resolve(AUTH.currentUser);
+  return AUTH.signInAnonymously();
+}
+
 AUTH.onAuthStateChanged(function(user) {
+  if (user && user.isAnonymous) {
+    // Los accesos mediante PIN usan una sesión anónima de Firebase.
+    if (!currentMode) showLoginScreen();
+    return;
+  }
   if (user && currentMode !== 'colector') {
     // Verificar si es el administrador autorizado
     var email = (user.email || '').toLowerCase().trim();
@@ -631,8 +641,11 @@ AUTH.onAuthStateChanged(function(user) {
     enterAsAdmin(user);
   } else if (!user && currentMode !== 'colector') {
     currentMode = null;
+    asegurarAutenticacion().catch(function(){ });
   }
 });
+
+asegurarAutenticacion().catch(function(err) { console.warn('Anonymous auth unavailable', err); });
 
 AUTH.getRedirectResult().then(function(result) {
   if (!result.user && !AUTH.currentUser && currentMode !== 'colector') {
