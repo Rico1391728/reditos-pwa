@@ -362,6 +362,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 <div class="form-actions"><button type="submit" class="btn btn-primary">Guardar</button><button type="button" class="btn btn-outline" data-close="modal-prestamo">Cancelar</button></div>
 </form></div></div>
 
+<div class="modal-overlay" id="modal-aumento"><div class="modal">
+<div class="modal-header"><h2>➕ Aumento de capital</h2><button class="btn-close" data-close="modal-aumento">&times;</button></div>
+<form id="form-aumento" style="padding:16px 20px 20px"><input type="hidden" id="aumento-prestamo-id">
+<p style="font-size:.82rem;color:var(--text-dim);margin-bottom:14px">El monto se incorpora al mismo calendario del préstamo y genera el rédito completo en la próxima fecha de cobro.</p>
+<div class="form-group"><label>Monto adicional ($)</label><input type="number" id="aumento-monto" required min="0.01" step="0.01" placeholder="0.00"></div>
+<div class="form-group"><label>Fecha de entrega</label><input type="date" id="aumento-fecha" required></div>
+<div class="form-group"><label>Nota (opcional)</label><input type="text" id="aumento-nota" placeholder="Ej: segundo desembolso"></div>
+<div class="form-actions"><button type="submit" class="btn btn-primary">Guardar aumento</button><button type="button" class="btn btn-outline" data-close="modal-aumento">Cancelar</button></div></form></div></div>
+
 <div class="modal-overlay" id="modal-pago"><div class="modal">
 <div class="modal-header"><h2 id="modal-pago-titulo">Registrar pago</h2><button class="btn-close" data-close="modal-pago">&times;</button></div>
 <form id="form-pago" style="padding:16px 20px 20px">
@@ -878,6 +887,14 @@ function limpiarInteresesMensualesFuturos() {
   });
 }
 
+function montoCapitalInteres(p, fechaInt) {
+  var base = Number(p.capitalBase || p.capital || 0);
+  (p.desembolsosAdicionales || []).forEach(function(d) {
+    if (d.fecha && d.fecha <= fechaInt) base += Number(d.monto || 0);
+  });
+  return base;
+}
+
 function generateInterests() {
   var today = todayStr();
   var changed = false;
@@ -889,7 +906,7 @@ function generateInterests() {
     changed = true;
     for (var i = 0; i < periods; i++) {
       var fechaInt = addPeriods(i + 1, desde, p.frecuencia);
-      D.historial.push({ id: newId(), prestamoId: p.id, monto: p.capital * (p.tasa / 100), fecha: fechaInt, cobrado: false, pagoId: null });
+      D.historial.push({ id: newId(), prestamoId: p.id, monto: montoCapitalInteres(p, fechaInt) * (p.tasa / 100), fecha: fechaInt, cobrado: false, pagoId: null });
     }
     p.ultimoInteres = addPeriods(periods, desde, p.frecuencia);
     if (p.ultimoInteres > today) p.ultimoInteres = today;
@@ -1258,9 +1275,40 @@ function openDetalle(pid) {
   if (p.direccion) infoExtra += '<div style="margin-bottom:4px;font-size:.85rem;color:var(--text-dim)">📍 Dirección: ' + escHtml(p.direccion) + '</div>';
   if (p.ruta) infoExtra += '<div style="margin-bottom:12px;font-size:.85rem;color:var(--primary)">🛣️ Ruta: '+escHtml(p.ruta)+'</div>';
 
-  var acc = (p.pagado ? '' : '<button class="btn btn-primary" data-pagar="'+p.id+'">💵 Pago</button>') + nuevoBtn + '<button class="btn btn-warning" data-factura="'+p.id+'">📄 Factura</button>' + (currentMode === 'admin' ? '<button class="btn btn-secondary" data-editar="'+p.id+'">✏️ Editar</button><button class="btn btn-outline" data-compartir="'+p.id+'">📤 Compartir</button><button class="btn btn-danger" data-eliminar="'+p.id+'">🗑️ Eliminar</button>' : '');
+  var acc = (p.pagado ? '' : '<button class="btn btn-primary" data-pagar="'+p.id+'">💵 Pago</button>') + nuevoBtn + '<button class="btn btn-warning" data-factura="'+p.id+'">📄 Factura</button>' + (currentMode === 'admin' ? '<button class="btn btn-primary" data-aumento="'+p.id+'">➕ Aumentar capital</button><button class="btn btn-secondary" data-editar="'+p.id+'">✏️ Editar</button><button class="btn btn-outline" data-compartir="'+p.id+'">📤 Compartir</button><button class="btn btn-danger" data-eliminar="'+p.id+'">🗑️ Eliminar</button>' : '');
   document.getElementById('detalle-contenido').innerHTML = '<div class="detalle-grid"><div class="detalle-item"><label>Capital</label><span>'+formatMoney(p.capital)+'</span></div><div class="detalle-item"><label>Capital Pagado</label><span style="color:var(--success)">'+formatMoney(p.capitalPagado||0)+'</span></div><div class="detalle-item"><label>Capital Pendiente</label><span style="color:var(--warning)">'+formatMoney(p.capital-(p.capitalPagado||0))+'</span></div><div class="detalle-item"><label>Tasa</label><span>'+p.tasa+'%</span></div><div class="detalle-item"><label>Frecuencia</label><span>'+freqLabel(p.frecuencia)+'</span></div><div class="detalle-item"><label>Desde</label><span>'+formatDate(p.fechaInicio)+'</span></div><div class="detalle-item"><label>Interés generado</label><span style="color:var(--success)">'+formatMoney(tg)+'</span></div><div class="detalle-item"><label>Pendiente</label><span style="color:var(--warning)">'+formatMoney(pe)+'</span></div></div>'+(p.ruta||p.cedula||p.direccion?infoExtra:'')+notasHtml+'<div class="detalle-historial"><h3>Intereses</h3>'+hp+'</div><div class="detalle-historial" style="margin-top:16px"><h3>Pagos</h3>'+pp+'</div><div class="detalle-actions">'+acc+'</div>';
   document.getElementById('modal-detalle').classList.add('open');
+}
+
+function abrirAumentoCapital(pid) {
+  var p = getPrestamo(pid); if (!p) return;
+  document.getElementById('aumento-prestamo-id').value = pid;
+  document.getElementById('aumento-monto').value = '';
+  document.getElementById('aumento-fecha').value = todayStr();
+  document.getElementById('aumento-nota').value = '';
+  document.getElementById('modal-detalle').classList.remove('open');
+  document.getElementById('modal-aumento').classList.add('open');
+}
+function guardarAumentoCapital(e) {
+  e.preventDefault();
+  var pid = parseInt(document.getElementById('aumento-prestamo-id').value);
+  var p = getPrestamo(pid); if (!p) return;
+  var monto = parseFloat(document.getElementById('aumento-monto').value) || 0;
+  var fecha = document.getElementById('aumento-fecha').value;
+  if (monto <= 0 || !fecha) { showToast('⚠️ Indica un monto y una fecha válidos'); return; }
+  if (fecha < p.fechaInicio) { showToast('⚠️ La fecha no puede ser anterior al inicio del préstamo'); return; }
+  if (!p.capitalBase) p.capitalBase = p.capital;
+  p.capital += monto;
+  p.desembolsosAdicionales = p.desembolsosAdicionales || [];
+  p.desembolsosAdicionales.push({id:newId(), monto:monto, fecha:fecha, nota:document.getElementById('aumento-nota').value.trim()});
+  generateInterests();
+  recalcPendientes(pid);
+  saveToFirestore().then(function(){
+    document.getElementById('modal-aumento').classList.remove('open');
+    showToast('✅ Aumento agregado al mismo calendario');
+    renderAll();
+    openDetalle(pid);
+  });
 }
 
 // ========== LOAN CRUD ==========
@@ -1405,12 +1453,13 @@ document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('.tab').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});document.querySelectorAll('.tab-content').forEach(function(x){x.classList.remove('active');});this.classList.add('active');document.getElementById('tab-'+this.dataset.tab).classList.add('active');});});
   document.getElementById('btn-nuevo-prestamo').addEventListener('click',function(){document.getElementById('modal-prestamo-titulo').textContent='Nuevo préstamo';document.getElementById('editando-prestamo-id').value='';document.getElementById('form-prestamo').reset();document.getElementById('ruta-input').value='';document.getElementById('fecha-inicio').value=todayStr();document.getElementById('modal-prestamo').classList.add('open');});
   document.getElementById('form-prestamo').addEventListener('submit',guardarPrestamo);
+document.getElementById('form-aumento').addEventListener('submit', guardarAumentoCapital);
   document.getElementById('form-pago').addEventListener('submit',guardarPago);
   document.querySelectorAll('[data-close]').forEach(function(e){e.addEventListener('click',function(){document.getElementById(this.dataset.close).classList.remove('open');});});
   document.querySelectorAll('.modal-overlay').forEach(function(o){o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
   document.getElementById('lista-prestamos').addEventListener('click',function(e){var c=e.target.closest('.loan-card');if(c)openDetalle(parseInt(c.dataset.id));});
   document.getElementById('detalle-contenido').addEventListener('click',function(e){var bp=e.target.closest('[data-pagar]');if(bp){abrirFormPago(parseInt(bp.dataset.pagar));return;}var bf=e.target.closest('[data-factura]');if(bf){generarFactura(parseInt(bf.dataset.factura));return;}var be=e.target.closest('[data-editar]');if(be){abrirEditarPrestamo(parseInt(be.dataset.editar));return;}var bc=e.target.closest('[data-compartir]');if(bc){compartirPrestamo(parseInt(bc.dataset.compartir));return;}var bd=e.target.closest('[data-eliminar]');if(bd){eliminarPrestamo(parseInt(bd.dataset.eliminar));}var bl=e.target.closest('.loan-card[data-id]');if(bl){openDetalle(parseInt(bl.dataset.id));}var nn=e.target.closest('[data-nuevo-mismo]');if(nn){abrirNuevoPrestamoCliente(nn.dataset.nuevoMismo);}});
-  document.addEventListener('click',function(e){var bp=e.target.closest('.btn-editar-pago');if(bp){abrirEditarPago(parseInt(bp.dataset.pgid),parseInt(bp.dataset.pid));}});
+  document.addEventListener('click',function(e){var ba=e.target.closest('[data-aumento]');if(ba){abrirAumentoCapital(parseInt(ba.dataset.aumento));return;}var bp=e.target.closest('.btn-editar-pago');if(bp){abrirEditarPago(parseInt(bp.dataset.pgid),parseInt(bp.dataset.pid));}});
   document.getElementById('fecha-inicio').value=todayStr();document.getElementById('pago-fecha').value=todayStr();
   document.getElementById('btn-backup-top').addEventListener('click',function(){
     renderPinList();
