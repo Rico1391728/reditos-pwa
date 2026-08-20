@@ -1394,6 +1394,16 @@ function abrirEditarPago(pgid, pid) {
   document.getElementById('pago-concepto').value=pg.concepto; document.getElementById('pago-fecha').value=pg.fecha;
   document.getElementById('modal-detalle').classList.remove('open'); document.getElementById('modal-pago').classList.add('open');
 }
+function registrarInteresAnticipado(p, total, fecha) {
+  var pendiente = getNoCobrados(p.id);
+  var capitalPend = Math.max(0, Number(p.capital || 0) - Number(p.capitalPagado || 0));
+  if (!pendiente.length && total > capitalPend + 0.000001) {
+    var interes = total - capitalPend;
+    D.historial.push({id:newId(), prestamoId:p.id, monto:interes, montoPagado:0, fecha:fecha, cobrado:false, pagoId:null, anticipado:true});
+  }
+  return total;
+}
+
 function guardarPago(e) {
   e.preventDefault();
   var editId = document.getElementById('editando-pago-id').value;
@@ -1411,6 +1421,7 @@ function guardarPago(e) {
     if (oldPg.concepto==='capital'||oldPg.concepto==='ambos') p.capitalPagado=Math.max(0,(p.capitalPagado||0)-oldPg.monto);
     oldPg.monto=monto; oldPg.descuento=descuento; oldPg.concepto=concepto; oldPg.fecha=fecha;
     var r=monto+descuento;
+    if (concepto==='ambos') r=registrarInteresAnticipado(p,r,fecha);
     if (concepto==='intereses'||concepto==='ambos') { r=aplicarPagoAIntereses(pid,r,oldPg.id); }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
     recalcPendientes(pid); checkPagado(pid);
@@ -1419,6 +1430,7 @@ function guardarPago(e) {
     var pago = { id: newId(), prestamoId: pid, monto: monto, descuento: descuento, concepto: concepto, fecha: fecha, notas: '', fechaCreacion: new Date().toISOString() };
     D.pagos.push(pago);
     var r=monto+descuento;
+    if (concepto==='ambos') r=registrarInteresAnticipado(p,r,fecha);
     if (concepto==='intereses'||concepto==='ambos') { r=aplicarPagoAIntereses(pid,r,pago.id); }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
     recalcPendientes(pid); checkPagado(pid);
