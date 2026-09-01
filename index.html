@@ -1434,7 +1434,7 @@ function guardarPago(e) {
     if (oldPg.concepto==='capital'||oldPg.concepto==='ambos') p.capitalPagado=Math.max(0,(p.capitalPagado||0)-oldPg.monto);
     oldPg.monto=monto; oldPg.descuento=descuento; oldPg.concepto=concepto; oldPg.fecha=fecha;
     var r=monto+descuento;
-    if (concepto==='intereses') r=registrarInteresSoloAnticipado(p,r,fecha,pago.id);
+    if (concepto==='intereses') r=registrarInteresSoloAnticipado(p,r,fecha,oldPg.id);
     if (concepto==='ambos') r=registrarInteresAnticipado(p,r,fecha);
     if (concepto==='intereses'||concepto==='ambos') { r=aplicarPagoAIntereses(pid,r,oldPg.id); }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
@@ -1444,6 +1444,7 @@ function guardarPago(e) {
     var pago = { id: newId(), prestamoId: pid, monto: monto, descuento: descuento, concepto: concepto, fecha: fecha, notas: '', fechaCreacion: new Date().toISOString() };
     D.pagos.push(pago);
     var r=monto+descuento;
+    if (concepto==='intereses') r=registrarInteresSoloAnticipado(p,r,fecha,pago.id);
     if (concepto==='ambos') r=registrarInteresAnticipado(p,r,fecha);
     if (concepto==='intereses'||concepto==='ambos') { r=aplicarPagoAIntereses(pid,r,pago.id); }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
