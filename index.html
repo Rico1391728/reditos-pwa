@@ -1404,6 +1404,19 @@ function registrarInteresAnticipado(p, total, fecha) {
   return total;
 }
 
+function registrarInteresSoloAnticipado(p, total, fecha, pagoId) {
+  var pendiente = getNoCobrados(p.id);
+  if (pendiente.length) return total;
+  var desde = p.ultimoInteres || p.fechaInicio;
+  var proxima = addPeriods(1, desde, p.frecuencia);
+  var esperado = montoCapitalInteres(p, proxima) * (p.tasa / 100);
+  if (total > 0 && esperado > 0 && total <= esperado + 0.000001) {
+    D.historial.push({id:newId(), prestamoId:p.id, monto:total, montoPagado:0, fecha:proxima, cobrado:false, pagoId:pagoId, anticipado:true});
+    if (total >= esperado - 0.000001) p.ultimoInteres = proxima;
+  }
+  return total;
+}
+
 function guardarPago(e) {
   e.preventDefault();
   var editId = document.getElementById('editando-pago-id').value;
@@ -1421,6 +1434,7 @@ function guardarPago(e) {
     if (oldPg.concepto==='capital'||oldPg.concepto==='ambos') p.capitalPagado=Math.max(0,(p.capitalPagado||0)-oldPg.monto);
     oldPg.monto=monto; oldPg.descuento=descuento; oldPg.concepto=concepto; oldPg.fecha=fecha;
     var r=monto+descuento;
+    if (concepto==='intereses') r=registrarInteresSoloAnticipado(p,r,fecha,pago.id);
     if (concepto==='ambos') r=registrarInteresAnticipado(p,r,fecha);
     if (concepto==='intereses'||concepto==='ambos') { r=aplicarPagoAIntereses(pid,r,oldPg.id); }
     if (concepto==='capital'||concepto==='ambos'){if(r>0){p.capitalPagado=(p.capitalPagado||0)+r;r=0;}}
