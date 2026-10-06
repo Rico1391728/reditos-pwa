@@ -417,7 +417,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg
 var currentUser = null;
 var unsubscribeFirestore = null;
 var syncing = false;
-var D = { version: 4, prestamos: [], historial: [], pagos: [], liquidaciones: [] };
+var D = { version: 4, prestamos: [], historial: [], pagos: [], liquidaciones: [], _partialPaymentsV2: false };
 var DATA_DOC_ID = 'datos-compartidos';
 var ALLOWED_ADMIN_EMAIL = 'rixocastillo@gmail.com'; // único administrador permitido
 var ADMIN_PIN = '1391'; // contraseña de admin para entrar desde cualquier celu
@@ -453,6 +453,7 @@ function listenToFirestore() {
       D.historial = remote.historial || [];
       D.pagos = remote.pagos || [];
       D.liquidaciones = remote.liquidaciones || [];
+      D._partialPaymentsV2 = remote._partialPaymentsV2 === true;
       D.version = remote.version || 4;
       localStorage.setItem('reditos_data_v2', JSON.stringify(D));
       syncing = false;
@@ -942,19 +943,23 @@ function aplicarPagoAIntereses(pid, total, pagoId) {
   return r;
 }
 function migrarPagosParciales() {
-  if (D._partialPaymentsV2) return false;
-  var changed = false;
+  if (D._partialPaymentsV2 === true) return false;
   D.pagos.forEach(function(pg) {
     if (pg.concepto !== 'intereses' && pg.concepto !== 'ambos') return;
     var vinculados = D.historial.filter(function(h){return h.prestamoId===pg.prestamoId && h.pagoId===pg.id;});
     if (!vinculados.length) return;
+    var disponible = Math.max(0, Number(pg.monto||0) + Number(pg.descuento||0));
+    var interesAplicado = typeof pg.interesesAplicados === 'number'
+      ? Math.min(disponible, Math.max(0, pg.interesesAplicados))
+      : (pg.concepto === 'intereses'
+        ? disponible
+        : Math.min(disponible, vinculados.reduce(function(s,h){return s+historialCobrado(h);},0)));
     vinculados.forEach(function(h){ h.cobrado=false; h.montoPagado=0; h.pagoId=null; });
-    aplicarPagoAIntereses(pg.prestamoId, (pg.monto||0)+(pg.descuento||0), pg.id);
-    changed = true;
+    if (interesAplicado > 0) aplicarPagoAIntereses(pg.prestamoId, interesAplicado, pg.id);
   });
   D._partialPaymentsV2 = true;
   recalcAllPendientes();
-  return changed;
+  return true;
 }
 function recalcAllPendientes() { D.prestamos.forEach(function(p) { recalcPendientes(p.id); }); }
 function recalcPendientes(pid) { var p = getPrestamo(pid); if(!p) return; p.totalIntereses = 0; p.interesesPendientes = 0; D.historial.forEach(function(h) { if (h.prestamoId !== pid) return; p.totalIntereses += h.monto; p.interesesPendientes += historialPendiente(h); }); }
