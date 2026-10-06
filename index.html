@@ -887,12 +887,25 @@ function limpiarInteresesMensualesFuturos() {
   });
 }
 
+function capitalPagadoHastaFecha(p, fechaInt) {
+  var aplicado = 0;
+  D.pagos.filter(function(pg) {
+    return pg.prestamoId === p.id && pg.fecha && pg.fecha <= fechaInt && (pg.concepto === 'capital' || pg.concepto === 'ambos');
+  }).forEach(function(pg) {
+    if (typeof pg.capitalAplicado === 'number') { aplicado += pg.capitalAplicado; return; }
+    if (pg.concepto === 'capital') { aplicado += Number(pg.monto || 0); return; }
+    var intAplicado = D.historial.filter(function(h) { return h.prestamoId === p.id && h.pagoId === pg.id; }).reduce(function(s,h) { return s + historialCobrado(h); },0);
+    aplicado += Math.max(0, Number(pg.monto || 0) + Number(pg.descuento || 0) - intAplicado);
+  });
+  return aplicado;
+}
+
 function montoCapitalInteres(p, fechaInt) {
   var base = Number(p.capitalBase || p.capital || 0);
   (p.desembolsosAdicionales || []).forEach(function(d) {
     if (d.fecha && d.fecha <= fechaInt) base += Number(d.monto || 0);
   });
-  return base;
+  return Math.max(0, base - capitalPagadoHastaFecha(p, fechaInt));
 }
 
 function generateInterests() {
